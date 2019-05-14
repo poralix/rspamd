@@ -1,4 +1,4 @@
-# <div style="text-align:center"><a href="https://directadmin.com"><img src="https://directadmin.com/img/logo/logo_directadmin.svg" alt="Directadmin" width="440px"/></a> + <a href="https://rspamd.com"><img src="https://rspamd.com/img/rspamd_logo_black.png" alt="Rspamd" width="220px"/></a></div>
+<p align="center"><a href="https://directadmin.com"><img src="https://directadmin.com/img/logo/logo_directadmin.svg" alt="Directadmin" width="440px"/></a> &nbsp;&nbsp; <sup>+</sup>  &nbsp; <a href="https://rspamd.com"><img src="https://rspamd.com/img/rspamd_logo_black.png" alt="Rspamd" width="220px"/></a></p>
 
 ## NAME
 
