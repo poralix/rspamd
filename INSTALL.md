@@ -9,7 +9,7 @@ cd rspamd/scripts/
 ./install.sh
 ```
 
-## INSTALLED VIA DIRECTADMIN INTERFACE
+## INSTALL VIA DIRECTADMIN INTERFACE
 
 - Connect to DirectAdmin as admin
 - Go to Plugin Manager page
