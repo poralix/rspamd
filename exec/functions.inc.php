@@ -1,9 +1,9 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.0
+#   Rspamd web interface plugin for Directadmin $ 0.1.1
 #   ==============================================================================
-#          Last modified: Sat Apr 27 22:28:33 +07 2019
+#          Last modified: Tue May 14 12:30:43 +07 2019
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -75,6 +75,8 @@ function filterContent($str)
 
     $search = array(
         'url: window.location.href',
+        'url: window.location.origin + window.location.pathname',
+        'ui.query("auth",',
         'sourceMappingURL=bootstrap.min.css.map',
         'ui.connect();',
         '</body>',
@@ -96,6 +98,8 @@ function filterContent($str)
     );
     $replace = array(
         'url: "'.PLUGIN_BASE_URL .'"',
+        'url: "'.PLUGIN_BASE_URL .'"',
+        'ui.query("auth.raw",',
         'sourceMappingURL=bootstrap.min.css.map.raw',
         'top.location.href="/";',
         "$preBody\n</body>",
