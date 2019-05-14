@@ -1,4 +1,4 @@
-## GIT
+## INSTALL FROM GIT
 
 Run the following commands as `root` to install the plugin from a `git` repository:
 
@@ -9,7 +9,7 @@ cd rspamd/scripts/
 ./install.sh
 ```
 
-## DIRECTADMIN 
+## INSTALLED VIA DIRECTADMIN INTERFACE
 
 - Connect to DirectAdmin as admin
 - Go to Plugin Manager page
