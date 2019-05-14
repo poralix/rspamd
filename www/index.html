@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Rspamd Web Interface</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="">
+	<meta name="author" content="">
+	<link rel="shortcut icon" href="favicon.ico">
+	<link href="./css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" href="./css/footable.bootstrap.min.css"/>
+	<link rel="stylesheet" type="text/css" href="./css/d3evolution.css">
+	<link rel="stylesheet" type="text/css" href="./css/nprogress.css"/>
+	<link href="./css/rspamd.css" rel="stylesheet">
+</head>
+
+<body>
+
+<nav class="navbar navbar-default" id="navBar">
+	<div class="container-fluid">
+		<div class="navbar-header">
+			<a class="navbar-brand" href="."><img src="./img/rspamd_logo_navbar.png" style="width: 67px; margin-top: -16px;"/></a>
+		</div>
+		<form class="navbar-form navbar-left">
+			<select id="selSrv" class="form-control"></select>
+		</form>
+		<ul class="nav navbar-nav nav-pills nav-tabs-sticky" role="tablist">
+			<li role="presentation"><a id="status_nav" aria-controls="status" role="tab" href="#status" data-toggle="tab">Status</a></li>
+
+			<li role="presentation"><a id="throughput_nav" aria-controls="throughput" role="tab" href="#throughput" data-toggle="tab">Throughput</a></li>
+
+			<li role="presentation"><a id="configuration_nav" aria-controls="configuration" role="tab" href="#configuration" data-toggle="tab">Configuration</a></li>
+			<li role="presentation"><a id="symbols_nav" aria-controls="symbols" role="tab" href="#symbols" data-toggle="tab">Symbols</a></li>
+			<li role="presentation"><a id="scan_nav" aria-controls="scan" role="tab" href="#scan" data-toggle="tab">Scan<span class="learn" style="display: none;">/Learn</span></a></li>
+			<li role="presentation"><a id="history_nav" aria-controls="history" role="tab" href="#history" data-toggle="tab">History</a></li>
+		</ul>
+    <ul class="nav navbar-nav nav-pills pull-right" style="display: none;">
+      <li><a href="#" role="button" data-toggle="button" id="refresh"><i class="glyphicon glyphicon-refresh glyphicon-spin"></i> Refresh</a></li>
+      <li><a href="#" role="button" data-toggle="button" id="disconnect"><i class="glyphicon glyphicon-off"></i> Disconnect</a></li>
+    </ul>
+	</div>
+</nav>
+
+<div class="notification-area"></div>
+
+<div id="mainUI" style="display: none;">
+
+	<div class="container-fluid">
+
+		<div class="tab-content">
+			<div class="tab-pane active" id="status">
+				<div class="row">
+					<div class="col-md-12">
+						<div class="widget-box widget-plain">
+							<ul id="statWidgets" class="stat-boxes" style="display: none;">
+							</ul>
+						</div>
+					</div>
+				</div>
+
+				<div class="widget-box">
+					<div class="widget-title">
+						<span class="icon"><i class="glyphicon glyphicon-signal"></i></span>
+						<h5>Statistics</h5>
+					</div>
+					<div class="widget-content chart-content">
+						<div class="row">
+							<div class="chart" id="chart">
+								<span class="notice">Loading..</span>
+								<noscript>Please enable Javascript</noscript>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="widget-box">
+						<!--iv class="widget-title">
+							<span class="icon"><i class="glyphicon glyphicon-tasks"></i></span>
+							<h5>Servers</h5>
+						</div-->
+						<div class="widget-content nopadding">
+								<table class="table table-log table-hover" id="clusterTable">
+										<thead>
+											<tr>
+												<th class="col1" title="Radio"></th>
+												<th class="col2" title="SName">Server name</th>
+												<th class="col3" title="SHost">Host</th>
+												<th class="col4" title="SStatus">Status</th>
+												<th class="col5" title="SId">Configuration ID</th>
+											</tr>
+										</thead>
+										<tbody>
+										</tbody>
+								</table>
+						</div>
+				</div>
+			</div>
+
+			<div class="tab-pane" id="throughput">
+				<div class="widget-box">
+					<div class="widget-title">
+						<span class="icon"><i class="glyphicon glyphicon-stats"></i></span>
+						<h5>Throughput</h5>
+					</div>
+					<div class="widget-content">
+						<div>
+							<div class="row">
+								<div id="graph">
+									<span class="notice">Loading..</span>
+									<noscript>Please enable Javascript</noscript>
+								</div>
+							</div>
+
+							<div id="summary-row" class="row">
+								<div class="col-fixed" id="rrd-pie" >
+									<span class="notice">Loading..</span>
+									<noscript>Please enable Javascript</noscript>
+								</div>
+
+								<div class="col-fluid">
+									<table id="rrd-table" class="table table-striped table-hover"></table>
+									<div id="rrd-table_toggle"></div>
+									<div id="rrd-total">Total messages: <span id="rrd-total-value"></span></div>
+								</div>
+							</div>
+
+							<form id="graph_controls" action="#">
+								Dataset:
+								<select id="selData" class="form-control">
+									<option value="hourly" selected>Hourly</option>
+									<option value="daily">Daily</option>
+									<option value="weekly">Weekly</option>
+									<option value="monthly">Monthly</option>
+								</select>
+								Y-scale:
+								<select id="selYScale" class="form-control">
+									<option value="lin" selected>Lin</option>
+									<option value="log">Log</option>
+								</select>
+								Convert to:
+								<select id="selConvert" class="form-control">
+									<option value="" selected>--</option>
+									<option value="percentage">percentage</option>
+								</select>
+								Chart type:
+								<select id="selType" class="form-control">
+									<option value="line" selected>Line</option>
+									<option value="area">Stacked area</option>
+								</select>
+								<a title="&ldquo;Curves&rdquo; section of &ldquo;d3-shape&rdquo; library documentation" href="https://github.com/d3/d3-shape#curves" target="_blank">Interpolation mode</a>:
+								<select id="selInterpolate" class="form-control">
+									<option value="curveLinear" selected>linear</option>
+									<option value="curveStep">step</option>
+									<option value="curveStepBefore">stepBefore</option>
+									<option value="curveStepAfter">stepAfter</option>
+									<option value="curveBasis">basis</option>
+									<option value="curveBasisOpen">basisOpen</option>
+									<option value="curveBundle">bundle</option>
+									<option value="curveCardinal">cardinal</option>
+									<option value="curveCardinalOpen">cardinalOpen</option>
+									<option value="curveMonotoneX">monotoneX</option>
+								</select>
+							</form>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="tab-pane" id="configuration">
+				<div class="widget-box">
+					<div class="widget-title">
+						<span class="icon"><i class="glyphicon glyphicon-tasks"></i></span><h5>Actions</h5>
+					</div>
+					<div class="widget-content actions-content" id="actionsBody"></div>
+				</div>
+				<div class="widget-box">
+					<div class="widget-title">
+						<span class="icon"><i class="glyphicon glyphicon-list"></i></span><h5>Lists</h5>
+					</div>
+					<div class="widget-content nopadding">
+						<table class="table table-condensed table-hover" id="listMaps">
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<div class="tab-pane" id="symbols">
+				<div class="widget-box">
+					<div class="widget-title">
+						<div class="buttons pull-right">
+							<button class="btn btn-info btn-sm" id="updateSymbols">
+								<i class="glyphicon glyphicon-refresh"></i> Update
+							</button>
+						</div>
+						<span class="icon"><i class="glyphicon glyphicon-tasks"></i></span>
+						<h5>Symbols and rules</h5>
+					</div>
+					<div class="widget-content nopadding">
+						<table class="table table-hover" id="symbolsTable"></table>
+					</div>
+				</div>
+			</div>
+
+			<div class="tab-pane" id="scan">
+				<div class="widget-box">
+					<div class="widget-title">
+						<span class="icon"><i class="glyphicon glyphicon-envelope"></i></span>
+						<h5>Scan suspected message</h5>
+					</div>
+					<div class="widget-content">
+						<h5>Message source:</h5>
+						<div class="row">
+							<form class="col-md-12" id="scanForm">
+								<div class="form-group">
+									<textarea class="form-control" id="scanMsgSource" rows="10" placeholder="Paste raw message source"></textarea>
+								</div>
+								<div class="form-group">
+									<button type="submit" class="btn btn-default btn-primary" data-upload="scan"><i class="glyphicon glyphicon-search"></i> Scan message</button>
+									<button class="btn btn-default pull-right" id="scanClean"><i class="glyphicon glyphicon-trash"></i> Clean form</button>
+								</div>
+							</form>
+						</div>
+						<div id="scanResult" style="display: none;">
+							<h4>Scan results:</h4>
+							<div class="well nomargin nopadding">
+								<table class="table table-log table-hover" id="scanOutput">
+									<thead>
+										<tr>
+											<th class="col4" title="Action">Action</th>
+											<th class="col5" title="Score / Req.&nbsp;score">Score / Req.&nbsp;score</th>
+											<th class="col6" title="Symbols">Symbols</th>
+										</tr>
+									</thead>
+								</table>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="widget-box learn" style="display: none;">
+					<div class="widget-title">
+						<span class="icon"><i class="glyphicon glyphicon-education"></i></span>
+						<h5>Learn Rspamd</h5>
+					</div>
+					<div class="widget-content">
+						<div class="row">
+							<div class="col-md-6">
+								<div class="well well-sm">
+									<form class="form-inline" role="form">
+										<h5>Learn Bayessian classifier:</h5>
+										<div class="form-group">
+											<div class="btn-group">
+												<button class="btn btn-success" type="button" data-upload="ham" disabled><i class="glyphicon glyphicon-thumbs-up"></i> Upload HAM</button>
+												<button class="btn btn-danger" type="button" data-upload="spam" disabled><i class="glyphicon glyphicon-thumbs-down"></i> Upload SPAM</button>
+											</div>
+										</div>
+									</form>
+								</div>
+							</div>
+							<div class="col-md-6">
+								<div class="well well-sm">
+									<form class="form-inline" role="form">
+										<h5>Learn Fuzzy storage:</h5>
+										<div class="form-group">
+											<label for="fuzzyFlagText">Flag:</label>
+											<input name="fuzzyFlagText" id="fuzzyFlagText" class="form-control" type="number" value="1"/>
+										</div>
+										<div class="form-group">
+											<label for="fuzzyWeightText">Weight:</label>
+											<input name="fuzzyWeightText" id="fuzzyWeightText" class="form-control" type="number" value="1"/>
+										</div>
+										<button class="btn btn-warning" data-upload="fuzzy" disabled><i class="glyphicon glyphicon-upload"></i> Upload FUZZY</button>
+									</form>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="tab-pane" id="history">
+
+				<div class="widget-box">
+					<div class="widget-title">
+						<div class="form-inline widget-title-form input-group-sm pull-right buttons">
+								<label for="selSymOrder">Symbols order:</label>
+								<select id="selSymOrder" class="form-control">
+									<option value="magnitude" selected>Score magnitude</option>
+									<option value="score">Score value</option>
+									<option value="name">Name</option>
+								</select>
+							<label for="history_page_size">Rows per page:</label>
+							<input id="history_page_size" class="form-control" value="25" min="1" type="number">
+							<button class="btn btn-danger btn-sm" id="resetHistory">
+								<i class="glyphicon glyphicon-remove-circle"></i> Reset
+							</button>
+							<button class="btn btn-info btn-sm" id="updateHistory">
+								<i class="glyphicon glyphicon-refresh"></i> Update
+							</button>
+						</div>
+						<span class="icon"><i class="glyphicon glyphicon-eye-open"></i></span>
+						<h5>History</h5>
+					</div>
+					<div class="widget-content nopadding">
+						<div id="historyLog">
+							<table class="table" id="historyTable"></table>
+						</div>
+					</div>
+				</div>
+				<div class="widget-box" id="errors-history">
+					<div class="widget-title">
+						<div class="buttons pull-right">
+							<button class="btn btn-info btn-sm" id="updateErrors">
+								<i class="glyphicon glyphicon-refresh"></i> Update
+							</button>
+						</div>
+						<span class="icon"><i class="glyphicon glyphicon-eye-open"></i></span>
+						<h5>Errors</h5>
+					</div>
+					<div class="widget-content nopadding">
+						<table class="table table-hover" id="errorsLog"></table>
+					</div>
+				</div>
+
+			</div>
+
+		</div>
+	</div>
+
+</div>
+
+<!-- Common modal -->
+<div id="modalDialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+				<h3 id="modalTitle"></h3>
+			</div>
+			<div class="modal-body" id="modalBody">
+				<div class="progress progress-striped active">
+					<div class="bar" style="width: 100%;"></div>
+				</div>
+			</div>
+			<div class="modal-footer">
+				<button class="btn btn-default" data-dismiss="modal" aria-hidden="true" id="modalClose">Close</button>
+				<button class="btn btn-primary" id="modalSave">Save changes</button>
+				<button class="btn btn-primary" id="modalSaveAll">Save on cluster</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- login modal -->
+<div id="connectDialog" class="modal" tabindex="-1" role="dialog" style="display: none;">
+	<div class="modal-dialog">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h3>Login to Rspamd</h3>
+			</div>
+			<div class="modal-body" id="connectBody">
+				<form id="connectForm">
+					<!--
+                    <div class="form-group">
+                        <label class="control-label" for="connectHost">Hostname</label>
+                        <div class="controls">
+                            <input class=col-md-2" type="text" id="connectHost" placeholder="Hostname" tabindex="1">
+                        </div>
+                    </div>
+                    -->
+					<div class="form-group">
+						<div class="input-group">
+							<input class="form-control"
+								   type="password"
+								   id="connectPassword"
+								   placeholder="Password"
+								   tabindex="1" data-cip-id="connectPassword">
+							<span class="input-group-btn">
+								<button type="submit" id="connectButton" class="btn btn-primary" tabindex="1">Connect</button>
+							</span>
+						</div>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div id="backDrop" class="modal-backdrop fade in" style="display: none;"></div>
+<script data-main="./js/main.js" src="./js/lib/require.min.js"></script>
+</body>
+</html>
