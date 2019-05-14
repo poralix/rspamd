@@ -53,7 +53,7 @@ function parseInput()
 
 function filterContent($str)
 {
-    $preBody = '<script src="'.PLUGIN_BASE_URL .'images/js/plugin.js"></script><br><center>2019 &copy; DirectAdmin plugin by <a href="https://www.poralix.com/?" target="_blank">Alex S Grebenschikov</a>.<br>Outsourced Linux Support: <a href="https://www.poralix.com/?" target="_blank">www.poralix.com</a>.<br><!-- Rspamd and web interface is writen by Vsevolod Stakhov //--></center><br>';
+    $preBody = '<script src="'.PLUGIN_BASE_URL .'images/js/plugin.js"></script><br><center>Rspamd and web interface is writen by Vsevolod Stakhov.<br>DirectAdmin plugin is written by Alex Grebenschikov.<br>Outsourced Linux Support: <a href="https://www.poralix.com/?" target="_blank">www.poralix.com</a>.</center><br>';
     $rspamdQuery = array(
         'rspamd.query("actions",'       => 'rspamd.query("'.PLUGIN_BASE_URL .'actions.raw",',
         'rspamd.query("auth",'          => 'rspamd.query("auth.raw",',
