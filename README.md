@@ -1,12 +1,19 @@
 # <a href="https://rspamd.com"><img src="https://rspamd.com/img/rspamd_logo_black.png" alt="Rspamd" width="220px"/></a>
 
+# <a href="https://directadmin.com"><img src="https://directadmin.com/img/logo/logo_directadmin.svg" alt="Directadmin" width="220px"/></a>
+
 ## NAME
 
 Rspamd web interface plugin for DirectAdmin Panel
 
 ## DESCRIPTION
 
-This is a simple control interface for Rspamd spam filtering system. It provides basic functions for setting metric actions, scores, viewing statistic and learning.
+The plugin provides administrators an access from DirectAdmin (the hosting panel) to a simple control interface for Rspamd spam filtering system.
+
+The Rspamd Web-UI provides basic functions for setting metric actions, scores, viewing statistic and learning.
+
+The plugin does not use or modify original files of Rspamd Web-UI. It proxies requests from users to Rspamd Web-UI and replies from the Web-UI to users.
+As a reverse proxy the plugin modifies links to keep navigation working within DirectAdmin.
 
 ## PLUGIN VERSION
 
@@ -16,41 +23,37 @@ This is a simple control interface for Rspamd spam filtering system. It provides
 - Version URL: https://files.poralix.com/version/freesoftware/rspamd
 - Tested with version of Rspamd: 1.9.2, 1.9.3 (stable) and 1.9.4 (experimental)
 
+## CHANGELOG
+
+- May 14, 2019: Updated for Rspamd 1.9.3 (stable) and 1.9.4 (experimental)
+
 ## INSTALLATION
 
-Run the following commands as `root` to install the plugin from a `git` repository:
-
-```
-cd /usr/local/directadmin/plugins/
-git clone https://github.com/poralix/rspamd.git
-cd rspamd/scripts/
-./install.sh
-```
+See the [INSTALL.md](INSTALL.md) file for installation instructions
 
 ## USAGE
 
-Install the plugin into DirectAdmin, and connect to it at an admin level.
+Connect to DirectAdmin as administrator and go to `Rspamd Web Interface` under `Extra Features`
 
 ## AUTHOR
 
-Plugin for Directadmin is written by **Alex S Grebenschikov** - [poralix](https://github.com/poralix)
+Plugin for Directadmin is written by **Alex Grebenschikov** - [poralix](https://github.com/poralix)
 
 Rspamd with the web interface is written by **Vsevolod Stakhov** - [vstakhov](https://github.com/vstakhov)
+
+Directadmin is owned and written by JBMC Software
 
 ## LICENSE
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE.md](LICENSE.md) file for details
 
-## CHANGELOG
+## NOTICES
 
-- May 14, 2019: Updated for Rspamd 1.9.3 (stable) and 1.9.4 (experimental)
+See the [NOTICE.md](NOTICE.md) file for details
 
 ## REFERENCES
 
-* Rspamd Home site: <https://rspamd.com>
-* Plugin Development: <https://github.com/poralix/rspamd>
-* Site repository: <https://github.com/rspamd/rspamd.com>
-
-## OTHER
-
-NOT FOR SELLING! FOR PRIVATE USAGE ONLY!
+- Rspamd Home site: <https://rspamd.com>
+- Plugin Development: <https://github.com/poralix/rspamd>
+- Site repository: <https://github.com/rspamd/rspamd.com>
+- DirectAdmin Home site: <https://directadmin.com>
