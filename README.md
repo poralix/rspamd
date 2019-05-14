@@ -10,10 +10,11 @@ This is a simple control interface for Rspamd spam filtering system. It provides
 
 ## PLUGIN VERSION
 
-- Version: 0.1.0
-- Last modified: Sat Apr 27 21:14:05 +07 2019
-- Update URL: https://files.poralix.com/get/freesoftware/rspamd
+- Version: 0.1.1
+- Last modified: Tue May 14 12:30:43 +07 2019
+- Update URL: https://files.poralix.com/get/freesoftware/rspamd.tar.gz
 - Version URL: https://files.poralix.com/version/freesoftware/rspamd
+- Tested with version of Rspamd: 1.9.2, 1.9.3 (stable) and 1.9.4 (experimental)
 
 ## INSTALLATION
 
@@ -39,6 +40,10 @@ Rspamd with the web interface is written by **Vsevolod Stakhov** - [vstakhov](ht
 ## LICENSE
 
 This project is licensed under the Apache 2.0 License - see the [LICENSE.md](LICENSE.md) file for details
+
+## CHANGELOG
+
+- May 14, 2019: Updated for Rspamd 1.9.3 (stable) and 1.9.4 (experimental)
 
 ## REFERENCES
 
