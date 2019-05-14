@@ -35,11 +35,11 @@ Connect to DirectAdmin as administrator and go to `Rspamd Web Interface` under `
 
 ## AUTHOR
 
-Plugin for Directadmin is written by **Alex Grebenschikov** - [poralix](https://github.com/poralix)
+Plugin for Directadmin is written by **Alex Grebenschikov**
 
-Rspamd with the web interface is written by **Vsevolod Stakhov** - [vstakhov](https://github.com/vstakhov)
+Rspamd with the web interface is written by **Vsevolod Stakhov**
 
-Directadmin is owned and written by JBMC Software
+Directadmin is owned and written by **JBMC Software**
 
 ## LICENSE
 
@@ -53,5 +53,5 @@ See the [NOTICE.md](NOTICE.md) file for details
 
 - Rspamd Home site: <https://rspamd.com>
 - Plugin Development: <https://github.com/poralix/rspamd>
-- Site repository: <https://github.com/rspamd/rspamd.com>
+- Custom Plugin Development and Server Support: <https://www.poralix.com>
 - DirectAdmin Home site: <https://directadmin.com>
