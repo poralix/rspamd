@@ -6,7 +6,7 @@ Rspamd web interface plugin for DirectAdmin Panel
 
 ## DESCRIPTION
 
-The plugin provides administrators an access from DirectAdmin (the hosting panel) to a simple control interface for Rspamd spam filtering system.
+The plugin provides administrators an access from DirectAdmin (the hosting panel) to a simple control interface for Rspamd (spam filtering system).
 
 The Rspamd Web-UI provides basic functions for setting metric actions, scores, viewing statistic and learning.
 
@@ -33,13 +33,11 @@ See the [INSTALL.md](INSTALL.md) file for installation instructions
 
 Connect to DirectAdmin as administrator and go to `Rspamd Web Interface` under `Extra Features`
 
-## AUTHOR
+## AUTHORS
 
-Plugin for Directadmin is written by **Alex Grebenschikov**
-
-Rspamd with the web interface is written by **Vsevolod Stakhov**
-
-Directadmin is owned and written by **JBMC Software**
+- Plugin for Directadmin is written by **Alex Grebenschikov**
+- Rspamd with the web interface is written by **Vsevolod Stakhov**
+- Directadmin is owned and written by **JBMC Software**
 
 ## LICENSE
 
