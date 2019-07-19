@@ -25,10 +25,10 @@
 
 /* global jQuery:false, Visibility:false */
 
-define(["jquery", "d3pie", "visibility", "nprogress", "app/stats", "app/graph", "app/config",
+define(["jquery", "d3pie", "visibility", "nprogress", "stickytabs", "app/stats", "app/graph", "app/config",
     "app/symbols", "app/history", "app/upload"],
 // eslint-disable-next-line max-params
-function ($, D3pie, visibility, NProgress, tab_stat, tab_graph, tab_config,
+function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_config,
     tab_symbols, tab_history, tab_upload) {
     "use strict";
     // begin
@@ -135,6 +135,23 @@ function ($, D3pie, visibility, NProgress, tab_stat, tab_graph, tab_config,
     }
 
     function displayUI() {
+        ui.query("auth", {
+            success: function (neighbours_status) {
+                $("#selSrv").empty();
+                $("#selSrv").append($('<option value="All SERVERS">All SERVERS</option>'));
+                neighbours_status.forEach(function (e) {
+                    $("#selSrv").append($('<option value="' + e.name + '">' + e.name + "</option>"));
+                    if (checked_server === e.name) {
+                        $('#selSrv [value="' + e.name + '"]').prop("selected", true);
+                    } else if (!e.status) {
+                        $('#selSrv [value="' + e.name + '"]').prop("disabled", true);
+                    }
+                });
+            },
+            errorMessage: "Cannot get server status",
+            server: "All SERVERS"
+        });
+
         // In many browsers local storage can only store string.
         // So when we store the boolean true or false, it actually stores the strings "true" or "false".
         ui.read_only = sessionStorage.getItem("read_only") === "true";
@@ -150,10 +167,8 @@ function ($, D3pie, visibility, NProgress, tab_stat, tab_graph, tab_config,
 
         var buttons = $("#navBar .pull-right");
         $("#mainUI").show();
-        $("#progress").show();
         $(buttons).show();
-        tabClick("#refresh");
-        $("#progress").hide();
+        $(".nav-tabs-sticky").stickyTabs({initialTab:"#status_nav"});
     }
 
     function alertMessage(alertClass, alertText) {
@@ -267,7 +282,11 @@ function ($, D3pie, visibility, NProgress, tab_stat, tab_graph, tab_config,
             }, 1000);
         });
 
-        $("a[data-toggle=\"tab\"]").on("click", function (e) {
+        $("a[data-toggle=\"tab\"]").on("shown.bs.tab", function (e) {
+            var tab_id = "#" + $(e.target).attr("id");
+            tabClick(tab_id);
+        });
+        $("a[data-toggle=\"button\"]").on("click", function (e) {
             var tab_id = "#" + $(e.target).attr("id");
             tabClick(tab_id);
         });
@@ -485,7 +504,7 @@ function ($, D3pie, visibility, NProgress, tab_stat, tab_graph, tab_config,
                         neighbours = {
                             local: {
                                 host: window.location.host,
-                                url: window.location.href
+                                url: window.location.origin + window.location.pathname
                             }
                         };
                     } else {

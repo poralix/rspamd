@@ -18,14 +18,14 @@
 
 <nav class="navbar navbar-default" id="navBar">
 	<div class="container-fluid">
-		<div class="navbar-header">
-			<a class="navbar-brand" href="."><img src="./img/rspamd_logo_navbar.png" style="width: 67px; margin-top: -16px;"/></a>
+		<div class="navbar-header navbar-brand">
+			<img src="./img/rspamd_logo_navbar.png" alt="Rspamd">
 		</div>
 		<form class="navbar-form navbar-left">
 			<select id="selSrv" class="form-control"></select>
 		</form>
-		<ul class="nav navbar-nav nav-pills" role="tablist">
-			<li role="presentation" class="active"><a id="status_nav" aria-controls="status" role="tab" href="#status" data-toggle="tab">Status</a></li>
+		<ul class="nav navbar-nav nav-pills nav-tabs-sticky" role="tablist">
+			<li role="presentation"><a id="status_nav" aria-controls="status" role="tab" href="#status" data-toggle="tab">Status</a></li>
 
 			<li role="presentation"><a id="throughput_nav" aria-controls="throughput" role="tab" href="#throughput" data-toggle="tab">Throughput</a></li>
 
@@ -35,8 +35,8 @@
 			<li role="presentation"><a id="history_nav" aria-controls="history" role="tab" href="#history" data-toggle="tab">History</a></li>
 		</ul>
     <ul class="nav navbar-nav nav-pills pull-right" style="display: none;">
-      <li><a href="#" data-toggle="tab" id="refresh"><i class="glyphicon glyphicon-refresh glyphicon-spin"></i> Refresh</a></li>
-      <li><a href="#" data-toggle="tab" id="disconnect"><i class="glyphicon glyphicon-off"></i> Disconnect</a></li>
+      <li><a href="#" role="button" data-toggle="button" id="refresh"><i class="glyphicon glyphicon-refresh glyphicon-spin"></i> Refresh</a></li>
+      <li><a href="#" role="button" data-toggle="button" id="disconnect"><i class="glyphicon glyphicon-off"></i> Disconnect</a></li>
     </ul>
 	</div>
 </nav>
@@ -244,7 +244,7 @@
 						<div class="row">
 							<div class="col-md-6">
 								<div class="well well-sm">
-									<form class="form-inline" role="form">
+									<form class="form-inline">
 										<h5>Learn Bayessian classifier:</h5>
 										<div class="form-group">
 											<div class="btn-group">
@@ -257,7 +257,7 @@
 							</div>
 							<div class="col-md-6">
 								<div class="well well-sm">
-									<form class="form-inline" role="form">
+									<form class="form-inline">
 										<h5>Learn Fuzzy storage:</h5>
 										<div class="form-group">
 											<label for="fuzzyFlagText">Flag:</label>
@@ -328,18 +328,14 @@
 </div>
 
 <!-- Common modal -->
-<div id="modalDialog" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
+<div id="modalDialog" class="modal fade" tabindex="-1" role="dialog">
 	<div class="modal-dialog">
 		<div class="modal-content">
 			<div class="modal-header">
 				<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
 				<h3 id="modalTitle"></h3>
 			</div>
-			<div class="modal-body" id="modalBody">
-				<div class="progress progress-striped active">
-					<div class="bar" style="width: 100%;"></div>
-				</div>
-			</div>
+			<div class="modal-body" id="modalBody"></div>
 			<div class="modal-footer">
 				<button class="btn btn-default" data-dismiss="modal" aria-hidden="true" id="modalClose">Close</button>
 				<button class="btn btn-primary" id="modalSave">Save changes</button>
