@@ -1,7 +1,7 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.1
+#   Rspamd web interface plugin for Directadmin $ 0.1.2
 #   ==============================================================================
 #          Last modified: Tue May 14 12:30:43 +07 2019
 #   ==============================================================================
@@ -13,7 +13,7 @@
 
 ignore_user_abort(true);
 set_time_limit(0);
-error_reporting(E_ALL);
+error_reporting(0);
 
 if (!defined('IN_DA_PLUGIN') || (IN_DA_PLUGIN !==true)){die("You're not allowed to view this page!");}
 
