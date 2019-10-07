@@ -1,9 +1,9 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.1
+#   Rspamd web interface plugin for Directadmin $ 0.1.2
 #   ==============================================================================
-#          Last modified: Tue May 14 12:30:43 +07 2019
+#          Last modified: Tue Oct  8 00:25:50 +07 2019
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -57,6 +57,7 @@ function filterContent($str)
     $rspamdQuery = array(
         'rspamd.query("actions",'       => 'rspamd.query("'.PLUGIN_BASE_URL .'actions.raw",',
         'rspamd.query("auth",'          => 'rspamd.query("auth.raw",',
+        'rspamd.query("checkv2",'       => 'rspamd.query("checkv2.raw",',
         'rspamd.query("errors",'        => 'rspamd.query("errors.raw",',
         'rspamd.query("getmap",'        => 'rspamd.query("'.PLUGIN_BASE_URL .'getmap.raw?map="+item.map,',
         'rspamd.query("graph",'         => 'rspamd.query("graph.raw",',
@@ -95,6 +96,7 @@ function filterContent($str)
         'url = "learnham";',
         'url = "learnspam";',
         'url = "fuzzyadd";',
+        'url = "checkv2";',
     );
     $replace = array(
         'url: "'.PLUGIN_BASE_URL .'"',
@@ -118,6 +120,7 @@ function filterContent($str)
         'url = "learnham.raw";',
         'url = "learnspam.raw";',
         'url = "fuzzyadd.raw?flag="+$("#fuzzyFlagText").val()+"&weight="+$("#fuzzyWeightText").val();',
+        'url = "checkv2.raw";'
     );
     $str=str_replace($search, $replace, $str);
     return $str;
@@ -130,6 +133,7 @@ function prepareRequest($requestUrl, $resourceUrl=false)
     $rspamdQuery = array(
         'actions',
         'auth',
+        'checkv2',
         'errors',
         'getmap',
         'graph',
