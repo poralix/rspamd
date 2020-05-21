@@ -1,9 +1,9 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.2
+#   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Tue May 14 12:30:43 +07 2019
+#          Last modified: Thu May 21 20:33:07 +07 2020
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -11,11 +11,12 @@
 #
 ######################################################################################
 
-class proxyHTTP
+class proxyRequest
 {
     private $Url;
     private $userAgent;
     private $remoteAddr;
+    private $socketFile;
     private $requestMethod;
     private $requestHeaders;
     private $requestReferer;
@@ -37,6 +38,13 @@ class proxyHTTP
     public function setRemoteAddr($str)
     {
         $this->remoteAddr=$str;
+        $this->socketFile=false;
+    }
+
+    public function setUseSocket($str)
+    {
+        $this->remoteAddr=false;
+        $this->socketFile=$str;
     }
 
     public function setRequestMethod($str)
@@ -90,6 +98,11 @@ class proxyHTTP
         return $this->remoteAddr;
     }
 
+    public function getUseSocket()
+    {
+        return $this->socketFile;
+    }
+
     public function getRequestMethod()
     {
         return $this->requestMethod;
@@ -126,6 +139,104 @@ class proxyHTTP
     }
 
     public function makeRequest()
+    {
+        if ($this->getUseSocket())
+        {
+            return $this->makeSocketRequest();
+        }
+        else
+        {
+            return $this->makeHTTPRequest();
+        }
+    }
+
+    public function makeSocketRequest()
+    {
+        $responseInfo='';
+        $headerSize='';
+
+        $this->setResponseHeaders(false);
+        $this->setResponseBody(false);
+        $this->setResponseInfo(false);
+
+        $userAgent = $this->getUserAgent();
+        $requestMethod = $this->getRequestMethod();
+        $remoteAddr = $this->getRemoteAddr();
+        $postData = $this->getPostData();
+        $url = $this->getUrl();
+        $requestHeaders = $this->getRequestHeaders();
+        $requestReferer = $this->getRequestReferer();
+
+        $useSocket = $this->getUseSocket();
+
+        $socket = socket_create(AF_UNIX, SOCK_STREAM, 0);
+
+        $result = socket_connect($socket, $useSocket);
+        if ($result === false) {
+            // echo "Failed to socket_connect().\nReason: ($result) " . socket_strerror(socket_last_error($socket)) . "\n";
+            return false;
+        }
+
+        switch ($requestMethod)
+        {
+            case 'HEAD':
+                $request = "HEAD ".$url." HTTP/1.0\r\n";
+                break;
+            case 'POST':
+                $request = "POST ".$url." HTTP/1.0\r\n";
+                break;
+            default:
+                $request = "GET ".$url." HTTP/1.0\r\n";
+                break;
+        }
+
+        if ($requestHeaders && is_array($requestHeaders))
+        {
+            foreach ($requestHeaders as $name => $value)
+            {
+                $request .= $name . ": " . $value ."\n";
+            }
+        }
+        if ($requestMethod === "POST")
+        {
+            if (defined('SAVE_CONTENT_TYPE') && (SAVE_CONTENT_TYPE == 'JSON'))
+            {
+                $request .= "Content-Type: application/json\r\n";
+                $request .= "Content-Length: " . strlen($postData)."\r\n\r\n";
+                $request .= $postData ."\r\n";
+            }
+            elseif (defined('SAVE_CONTENT_TYPE') && (SAVE_CONTENT_TYPE == 'RAW'))
+            {
+                $request .= "Content-Type: application/x-www-form-urlencoded\r\n";
+                $request .= "Content-Length: " . strlen($postData)."\r\n\r\n";
+                $request .= $postData ."\r\n";
+            }
+        }
+        $request .= "\r\n";
+
+        socket_write($socket, $request, strlen($request));
+        $response = '';
+
+        while ($out = socket_read($socket, 2048)) {
+            $response .= $out;
+        }
+
+        if ($response)
+        {
+            $responseHeaders = substr($response, 0, strpos($response, "\r\n\r\n"));
+            $responseBody = substr($response, strpos($response, "\r\n\r\n")+4);
+            $this->setResponseHeaders($responseHeaders);
+            $this->setResponseBody($responseBody);
+            $this->setResponseInfo('');
+            socket_close($socket);
+            return true;
+        }
+
+        socket_close($socket);
+        return false;
+    }
+
+    public function makeHTTPRequest()
     {
         $responseInfo='';
         $headerSize='';

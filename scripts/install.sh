@@ -1,9 +1,9 @@
 #!/bin/bash
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.2
+#   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Thu Oct 10 11:54:54 +07 2019
+#          Last modified: Thu May 21 20:33:07 +07 2020
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -13,18 +13,19 @@
 
 DIR="/usr/local/directadmin/plugins/rspamd";
 
-chown -R diradmin:diradmin "${DIR}";
-chmod 711 "${DIR}";
-chmod 755 "${DIR}/hooks/";
-chmod 644 "${DIR}/hooks/admin_img.html";
-chmod 644 "${DIR}/hooks/admin_txt.html";
-chmod 710 "${DIR}/admin/"*.raw;
-chmod 710 "${DIR}/admin/"*.html;
-chmod 710 "${DIR}/data/";
-chmod 710 "${DIR}/exec/";
+chown -R _rspamd:_rspamd "${DIR}";
+chmod 700 "${DIR}/admin/"*.raw;
+chmod 700 "${DIR}/admin/"*.html;
+chmod 700 "${DIR}/data/";
+chmod 700 "${DIR}/exec/";
 
 perl -pi -e "s/^active=no/active=yes/" "${DIR}/plugin.conf";
 perl -pi -e "s/^installed=no/installed=yes/" "${DIR}/plugin.conf";
+perl -pi -e "s/.*'RSPAMD_SOCKET'.*//" "${DIR}/exec/settings.inc.php";
+
+if [ -S "/var/run/rspamd/rspamd_controller.sock" ]; then
+    echo "if (!defined('RSPAMD_SOCKET')) define('RSPAMD_SOCKET','/var/run/rspamd/rspamd_controller.sock');" >> "${DIR}/exec/settings.inc.php";
+fi;
 
 echo "Plugin installed";
 

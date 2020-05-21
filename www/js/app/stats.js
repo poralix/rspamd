@@ -22,10 +22,8 @@
  THE SOFTWARE.
  */
 
-/* global d3:false */
-
-define(["jquery", "d3pie"],
-    function ($) {
+define(["jquery", "d3pie", "humanize"],
+    function ($, d3pie, Humanize) {
         "use strict";
         // @ ms to date
         function msToTime(seconds) {
@@ -79,9 +77,9 @@ define(["jquery", "d3pie"],
                     "</strong>" + i + "</div>";
                     $(widget).appendTo(widgets);
                 } else {
-                    var titleAtt = d3.format(",")(item) + " " + i;
+                    var titleAtt = Humanize.intComma(item) + " " + i;
                     widget = "<li class=\"stat-box\"><div class=\"widget\" title=\"" + titleAtt + "\"><strong>" +
-                    d3.format(".3~s")(item) + "</strong>" + i + "</div></li>";
+                    Humanize.compactInteger(item) + "</strong>" + i + "</div></li>";
                     if (i === "scanned") {
                         stat_w[0] = widget;
                     } else if (i === "clean") {

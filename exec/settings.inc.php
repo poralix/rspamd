@@ -1,9 +1,9 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.2
+#   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Tue May 14 12:30:43 +07 2019
+#          Last modified: Thu May 21 20:33:07 +07 2020
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -26,3 +26,5 @@ define('PLUGIN_FONT_URL',  '/CMD_PLUGINS_ADMIN/rspamd/fonts.raw');
 define('PLUGIN_JSON_URL',  '/CMD_PLUGINS_ADMIN/rspamd/json.raw');
 
 define('RSPAMD_HOME_URL',  'http://127.0.0.1:11334');
+
+if (!defined('RSPAMD_SOCKET')) define('RSPAMD_SOCKET','/var/run/rspamd/rspamd_controller.sock');

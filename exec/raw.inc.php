@@ -1,9 +1,9 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.2
+#   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Tue May 14 12:30:43 +07 2019
+#          Last modified: Thu May 21 20:33:07 +07 2020
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)

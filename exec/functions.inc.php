@@ -1,9 +1,9 @@
 <?php
 ######################################################################################
 #
-#   Rspamd web interface plugin for Directadmin $ 0.1.2
+#   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Tue Oct  8 00:25:50 +07 2019
+#          Last modified: Thu May 21 20:33:07 +07 2020
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -129,6 +129,7 @@ function filterContent($str)
 function prepareRequest($requestUrl, $resourceUrl=false)
 {
     global $plugin;
+    $PRE_URL = (defined('RSPAMD_SOCKET') && RSPAMD_SOCKET) ? '' : RSPAMD_HOME_URL;
 
     $rspamdQuery = array(
         'actions',
@@ -155,7 +156,7 @@ function prepareRequest($requestUrl, $resourceUrl=false)
         'savesymbols',
     );
 
-    $url = sprintf('%s/%s',RSPAMD_HOME_URL,'');
+    $url = sprintf('%s/%s',$PRE_URL,'');
     $contentType = 'HTML';
 
     if (defined('ADMIN_RAW_CONTENT') && ADMIN_RAW_CONTENT)
@@ -163,50 +164,50 @@ function prepareRequest($requestUrl, $resourceUrl=false)
         if (($requestUrl == 'css') && $resourceUrl)
         {
             $contentType = 'CSS';
-            $url = sprintf('%s/css/%s',RSPAMD_HOME_URL,$resourceUrl);
+            $url = sprintf('%s/css/%s',$PRE_URL,$resourceUrl);
         }
         elseif (($requestUrl == 'js') && $resourceUrl)
         {
             $contentType = 'JS';
-            $url = sprintf('%s/js/%s',RSPAMD_HOME_URL,$resourceUrl);
+            $url = sprintf('%s/js/%s',$PRE_URL,$resourceUrl);
         }
         elseif (($requestUrl == 'img') && (strpos($resourceUrl, '.png') !== false))
         {
             $contentType = 'PNG';
-            $url = sprintf('%s/img/%s',RSPAMD_HOME_URL,$resourceUrl);
+            $url = sprintf('%s/img/%s',$PRE_URL,$resourceUrl);
         }
         elseif (($requestUrl == 'fonts') && (strpos($resourceUrl, '.woff') !== false))
         {
             $contentType = 'WOFF';
-            $url = sprintf('%s/fonts/%s',RSPAMD_HOME_URL,$resourceUrl);
+            $url = sprintf('%s/fonts/%s',$PRE_URL,$resourceUrl);
         }
         elseif (($requestUrl == 'fonts') && (strpos($resourceUrl, '.woff2') !== false))
         {
             $contentType = 'WOFF2';
-            $url = sprintf('%s/fonts/%s',RSPAMD_HOME_URL,$resourceUrl);
+            $url = sprintf('%s/fonts/%s',$PRE_URL,$resourceUrl);
         }
         elseif (($requestUrl == 'fonts') && (strpos($resourceUrl, '.ttf') !== false))
         {
             $contentType = 'TFF';
-            $url = sprintf('%s/fonts/%s',RSPAMD_HOME_URL,$resourceUrl);
+            $url = sprintf('%s/fonts/%s',$PRE_URL,$resourceUrl);
         }
         elseif ($requestUrl == 'favicon.ico')
         {
             $contentType = 'ICO';
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,$requestUrl);
+            $url = sprintf('%s/%s',$PRE_URL,$requestUrl);
         }
         elseif ($requestUrl == 'graph')
         {
             $contentType = 'JSON';
             $type = (isset($_GET['type']) && $_GET['type']) ? $_GET['type'] : '';
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,$requestUrl.'?type='. $type);
+            $url = sprintf('%s/%s',$PRE_URL,$requestUrl.'?type='. $type);
         }
         elseif ($requestUrl == 'getmap')
         {
             $contentType = 'TEXT';
             $map = (isset($_GET['map']) && intval($_GET['map'])) ? intval($_GET['map']) : false;
             if ($map) $plugin->setRequestHeaders(array('map'=>$map));
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,$requestUrl);
+            $url = sprintf('%s/%s',$PRE_URL,$requestUrl);
         }
         elseif ($requestUrl == 'savemap')
         {
@@ -214,7 +215,7 @@ function prepareRequest($requestUrl, $resourceUrl=false)
             define('SAVE_CONTENT_TYPE', 'RAW');
             $map = (isset($_GET['map']) && intval($_GET['map'])) ? intval($_GET['map']) : false;
             if ($map) $plugin->setRequestHeaders(array('map'=>$map));
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,$requestUrl);
+            $url = sprintf('%s/%s',$PRE_URL,$requestUrl);
         }
         elseif ($requestUrl == 'fuzzyadd')
         {
@@ -223,13 +224,13 @@ function prepareRequest($requestUrl, $resourceUrl=false)
             $flag = (isset($_GET['flag']) && intval($_GET['flag'])) ? intval($_GET['flag']) : false;
             $weight = (isset($_GET['weight']) && intval($_GET['weight'])) ? intval($_GET['weight']) : false;
             if ($flag && $weight) $plugin->setRequestHeaders(array('flag'=>$flag,'weight'=>$weight));
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,$requestUrl);
+            $url = sprintf('%s/%s',$PRE_URL,$requestUrl);
         }
         elseif (in_array($requestUrl, $jsonRequests) || in_array($requestUrl, $rspamdQuery))
         {
             $contentType = 'JSON';
             define('SAVE_CONTENT_TYPE', 'RAW');
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,$requestUrl);
+            $url = sprintf('%s/%s',$PRE_URL,$requestUrl);
         }
         elseif ($requestUrl == 'bootstrap.min.css.map')
         {
@@ -243,7 +244,7 @@ function prepareRequest($requestUrl, $resourceUrl=false)
         }
         else
         {
-            $url = sprintf('%s/%s',RSPAMD_HOME_URL,'');
+            $url = sprintf('%s/%s',$PRE_URL,'');
         }
     }
     define('CONTENT_TYPE', $contentType."");
