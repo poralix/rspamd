@@ -39,16 +39,9 @@ textarea {
 .navbar-brand > img {
     height: 50px;
 }
-.disconnect {
-    margin: 9px 0 0;
-    padding-bottom: 5px;
-    font-size: 11px;
-    color: #777;
-    -moz-text-shadow: 0 1px 0 #fff;
-    -webkit-text-shadow: 0 1px 0 #fff;
-    -o-text-shadow: 0 1px 0 #fff;
-    -ms-text-shadow: 0 1px 0 #fff;
-    text-shadow: 0 1px 0 #fff;
+.btn-group > .btn.btn-default.radius-right {
+    border-top-right-radius: 4px !important;
+    border-bottom-right-radius: 4px !important;
 }
 .chart-content {
     text-align: center;
