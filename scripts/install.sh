@@ -24,7 +24,7 @@ if [ "${RVAL}" == "0" ]; then
     chmod 644 "${DIR}/exec/"*.php;
     chmod 750 "${DIR}/data/";
     chmod 750 "${DIR}/exec/";
-    chmod 750 "${DIR}/";
+    chmod 755 "${DIR}/";
 
     perl -pi -e "s/^active=no/active=yes/" "${DIR}/plugin.conf";
     perl -pi -e "s/^installed=no/installed=yes/" "${DIR}/plugin.conf";

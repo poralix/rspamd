@@ -92,6 +92,6 @@ else
     if (defined('ADMIN_RAW_CONTENT') && ADMIN_RAW_CONTENT)
     {
         printHeaders();
-        print json_encode(array("error" => "An error occurred!"));
+        print json_encode(array("error" => "An error occured!"));
     }
 }

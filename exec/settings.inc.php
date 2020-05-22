@@ -26,3 +26,4 @@ define('PLUGIN_FONT_URL',  '/CMD_PLUGINS_ADMIN/rspamd/fonts.raw');
 define('PLUGIN_JSON_URL',  '/CMD_PLUGINS_ADMIN/rspamd/json.raw');
 
 define('RSPAMD_HOME_URL',  'http://127.0.0.1:11334');
+if (!defined('RSPAMD_SOCKET')) define('RSPAMD_SOCKET','/var/run/rspamd/rspamd_controller.sock');
