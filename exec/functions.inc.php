@@ -3,7 +3,7 @@
 #
 #   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Thu May 21 20:33:07 +07 2020
+#          Last modified: Sun Sep 20 02:12:09 +07 2020
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
 #         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
@@ -85,9 +85,14 @@ function filterContent($str)
         '"./img/',
         '"./js/',
         'url(../fonts/',
+        'url("../fonts/',
         'baseUrl: "js/lib"',
         'app: "../app"',
-        '"favicon.ico"',
+        '"favicon-32x32.png?',
+        '"favicon-16x16.png?',
+        '"apple-touch-icon.png?',
+        '"safari-pinned-tab.svg?',
+        '"favicon.ico?',
         '"stat"',
         '"neighbours"',
         '\"savemap\"',
@@ -97,6 +102,7 @@ function filterContent($str)
         'url = "learnspam";',
         'url = "fuzzyadd";',
         'url = "checkv2";',
+        'rspamd.query("plugins/',
     );
     $replace = array(
         'url: "'.PLUGIN_BASE_URL .'"',
@@ -109,18 +115,24 @@ function filterContent($str)
         '"' .    PLUGIN_IMG_URL  . '?r=',
         '"' .    PLUGIN_JS_URL   . '?r=',
         'url(' . PLUGIN_FONT_URL . '?r=',
+        'url("' . PLUGIN_FONT_URL . '?r=',
         'baseUrl:  "' . PLUGIN_JS_URL . '?r=lib"',
         'app: "../app"',
-        '"' . PLUGIN_HOME_URL . '?u=favicon.ico"',
-        '"'.PLUGIN_BASE_URL .'stat.raw"',
-        '"'.PLUGIN_BASE_URL .'neighbours.raw"',
+        '"'. PLUGIN_HOME_URL . '?r=favicon-32x32.png&',
+        '"'. PLUGIN_HOME_URL . '?r=favicon-16x16.png&',
+        '"'. PLUGIN_HOME_URL . '?r=apple-touch-icon.png&',
+        '"'. PLUGIN_HOME_URL . '?r=safari-pinned-tab.svg&',
+        '"'. PLUGIN_HOME_URL . '?r=favicon.ico&',
+        '"stat.raw"',
+        '"'. PLUGIN_BASE_URL .'neighbours.raw"',
         '\"savemap.raw?map="+item.map+"\"',
         '$("#modalBody form").html("");$("#modalDialog").modal("hide");',
         '"savesymbols.raw"',
         'url = "learnham.raw";',
         'url = "learnspam.raw";',
         'url = "fuzzyadd.raw?flag="+$("#fuzzyFlagText").val()+"&weight="+$("#fuzzyWeightText").val();',
-        'url = "checkv2.raw";'
+        'url = "checkv2.raw";',
+        'rspamd.query("plugins.raw?r=',
     );
     $str=str_replace($search, $replace, $str);
     return $str;
@@ -130,6 +142,14 @@ function prepareRequest($requestUrl, $resourceUrl=false)
 {
     global $plugin;
     $PRE_URL = (defined('RSPAMD_SOCKET') && RSPAMD_SOCKET) ? '' : RSPAMD_HOME_URL;
+
+    $faviconQuery = array(
+        'favicon-32x32.png',
+        'favicon-16x16.png',
+        'apple-touch-icon.png',
+        'safari-pinned-tab.svg',
+        'favicon.ico',
+    );
 
     $rspamdQuery = array(
         'actions',
@@ -191,10 +211,15 @@ function prepareRequest($requestUrl, $resourceUrl=false)
             $contentType = 'TFF';
             $url = sprintf('%s/fonts/%s',$PRE_URL,$resourceUrl);
         }
-        elseif ($requestUrl == 'favicon.ico')
+        elseif (($requestUrl == 'plugins') && $resourceUrl)
         {
-            $contentType = 'ICO';
-            $url = sprintf('%s/%s',$PRE_URL,$requestUrl);
+            $contentType = 'JS';
+            $url = sprintf('%s/plugins/%s',$PRE_URL,$resourceUrl);
+        }
+        elseif (in_array($resourceUrl, $faviconQuery))
+        {
+            $contentType = strtoupper(substr($requestUrl,-3));
+            $url = sprintf('%s/%s',$PRE_URL,$resourceUrl);
         }
         elseif ($requestUrl == 'graph')
         {
