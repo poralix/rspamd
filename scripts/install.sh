@@ -28,7 +28,7 @@ if [ "${RVAL}" == "0" ]; then
 
     perl -pi -e "s/^active=no/active=yes/" "${DIR}/plugin.conf";
     perl -pi -e "s/^installed=no/installed=yes/" "${DIR}/plugin.conf";
-    perl -pi -e "s/.*'RSPAMD_SOCKET'.*//" "${DIR}/exec/settings.inc.php";
+    perl -pi -e "s/.*'RSPAMD_SOCKET'.*\n//" "${DIR}/exec/settings.inc.php";
 
     if [ -S "/var/run/rspamd/rspamd_controller.sock" ]; then
         echo "if (!defined('RSPAMD_SOCKET')) define('RSPAMD_SOCKET','/var/run/rspamd/rspamd_controller.sock');" >> "${DIR}/exec/settings.inc.php";

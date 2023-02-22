@@ -27,7 +27,7 @@ function parseInput()
     {
         parse_str($_SERVER['QUERY_STRING'], $_GET);
     }
-    if (get_magic_quotes_gpc())
+    if (function_exists('get_magic_quotes_gpc') && get_magic_quotes_gpc())
     {
         $process = array(&$_GET, &$_POST, &$_COOKIE, &$_REQUEST);
         while (list($key, $val) = each($process))

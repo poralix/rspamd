@@ -15,11 +15,11 @@ As a reverse proxy the plugin modifies links to keep navigation working within D
 
 ## PLUGIN VERSION
 
-- Version: 0.2.4
-- Last modified: Sun Sep 20 02:12:09 +07 2020
+- Version: 0.2.5
+- Last modified: Wed Feb 22 23:39:38 +07 2023
 - Update URL: https://files.poralix.com/get/freesoftware/rspamd.tar.gz
 - Version URL: https://files.poralix.com/version/freesoftware/rspamd
-- Tested with version of Rspamd: rspamd-2.6-25
+- Tested with version of Rspamd: rspamd-3.5-12
 
 ## CHANGELOG
 
