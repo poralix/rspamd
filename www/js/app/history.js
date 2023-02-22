@@ -80,7 +80,8 @@ define(["jquery", "footable"],
                 breakpoints: "xs sm md",
                 style: {
                     "font-size": "11px",
-                    "minWidth": 88
+                    "minWidth": "calc(7.6em + 8px)",
+                    "word-break": "break-all"
                 }
             }, {
                 name: "sender_mime",
@@ -96,6 +97,8 @@ define(["jquery", "footable"],
                 name: "rcpt_mime_short",
                 title: "[Envelope To] To/Cc/Bcc",
                 breakpoints: "xs sm md",
+                filterable: false,
+                classes: "d-none d-xl-table-cell",
                 style: {
                     "font-size": "11px",
                     "minWidth": 100,
@@ -131,20 +134,24 @@ define(["jquery", "footable"],
                 title: "Score",
                 style: {
                     "font-size": "11px",
-                    "maxWidth": 110
+                    "maxWidth": 110,
+                    "text-align": "right",
+                    "white-space": "nowrap"
                 },
                 sortValue: function (val) { return Number(val.options.sortValue); }
             }, {
                 name: "symbols",
-                title: "Symbols<br /><br />" +
-                        '<span style="font-weight:normal;">Sort by:</span><br />' +
-                        '<div class="btn-group btn-group-toggle btn-group-xs btn-sym-order-history" data-toggle="buttons">' +
-                            '<label type="button" class="btn btn-outline-secondary btn-sym-history-magnitude">' +
-                                '<input type="radio" value="magnitude">Magnitude</label>' +
-                            '<label type="button" class="btn btn-outline-secondary btn-sym-history-score">' +
-                                '<input type="radio" value="score">Value</label>' +
-                            '<label type="button" class="btn btn-outline-secondary btn-sym-history-name">' +
-                                '<input type="radio" value="name">Name</label>' +
+                title: "Symbols" +
+                        '<div class="sym-order-toggle">' +
+                            '<br><span style="font-weight:normal;">Sort by:</span><br>' +
+                            '<div class="btn-group btn-group-toggle btn-group-xs btn-sym-order-history" data-toggle="buttons">' +
+                                '<label type="button" class="btn btn-outline-secondary btn-sym-history-magnitude">' +
+                                    '<input type="radio" value="magnitude">Magnitude</label>' +
+                                '<label type="button" class="btn btn-outline-secondary btn-sym-history-score">' +
+                                    '<input type="radio" value="score">Value</label>' +
+                                '<label type="button" class="btn btn-outline-secondary btn-sym-history-name">' +
+                                    '<input type="radio" value="name">Name</label>' +
+                            "</div>" +
                         "</div>",
                 breakpoints: "all",
                 style: {
@@ -171,6 +178,7 @@ define(["jquery", "footable"],
                 },
                 sortValue: function (val) { return Number(val); }
             }, {
+                classes: "history-col-time",
                 sorted: true,
                 direction: "DESC",
                 name: "time",

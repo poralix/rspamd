@@ -43,6 +43,16 @@ define(["jquery"],
             } else if (source === "scan") {
                 url = "checkv2";
             }
+
+            function server() {
+                if (rspamd.getSelector("selSrv") === "All SERVERS" &&
+                    rspamd.getSelector("selLearnServers") === "random") {
+                    const servers = $("#selSrv option").slice(1).map(function (_, o) { return o.value; });
+                    return servers[Math.floor(Math.random() * servers.length)];
+                }
+                return null;
+            }
+
             rspamd.query(url, {
                 data: data,
                 params: {
@@ -56,7 +66,8 @@ define(["jquery"],
                     if (jqXHR.status !== 200) {
                         rspamd.alertMessage("alert-info", jqXHR.statusText);
                     }
-                }
+                },
+                server: server()
             });
         }
 
@@ -89,15 +100,17 @@ define(["jquery"],
                 sortValue: function (val) { return Number(val.options.sortValue); }
             }, {
                 name: "symbols",
-                title: "Symbols<br /><br />" +
-                        '<span style="font-weight:normal;">Sort by:</span><br />' +
-                        '<div class="btn-group btn-group-toggle btn-group-xs btn-sym-order-scan" data-toggle="buttons">' +
-                            '<label type="button" class="btn btn-outline-secondary btn-sym-scan-magnitude">' +
-                                '<input type="radio" value="magnitude">Magnitude</label>' +
-                            '<label type="button" class="btn btn-outline-secondary btn-sym-scan-score">' +
-                                '<input type="radio" value="score">Value</label>' +
-                            '<label type="button" class="btn btn-outline-secondary btn-sym-scan-name">' +
-                                '<input type="radio" value="name">Name</label>' +
+                title: "Symbols" +
+                        '<div class="sym-order-toggle">' +
+                            '<br><span style="font-weight:normal;">Sort by:</span><br>' +
+                            '<div class="btn-group btn-group-toggle btn-group-xs btn-sym-order-scan" data-toggle="buttons">' +
+                                '<label type="button" class="btn btn-outline-secondary btn-sym-scan-magnitude">' +
+                                    '<input type="radio" value="magnitude">Magnitude</label>' +
+                                '<label type="button" class="btn btn-outline-secondary btn-sym-scan-score">' +
+                                    '<input type="radio" value="score">Value</label>' +
+                                '<label type="button" class="btn btn-outline-secondary btn-sym-scan-name">' +
+                                    '<input type="radio" value="name">Name</label>' +
+                            "</div>" +
                         "</div>",
                 breakpoints: "all",
                 style: {
@@ -127,13 +140,14 @@ define(["jquery"],
         }
 
         // @upload text
-        function scanText(rspamd, tables, data, server) {
+        function scanText(rspamd, tables, data, server, headers) {
             rspamd.query("checkv2", {
                 data: data,
                 params: {
                     processData: false,
                 },
                 method: "POST",
+                headers: headers,
                 success: function (neighbours_status) {
                     function scrollTop(rows_total) {
                         // Is there a way to get an event when all rows are loaded?
@@ -199,7 +213,7 @@ define(["jquery"],
             });
 
             function enable_disable_scan_btn() {
-                $("#scan button").prop("disabled", ($.trim($("textarea").val()).length === 0));
+                $("#scan button:not(#scanOptionsToggle)").prop("disabled", ($.trim($("textarea").val()).length === 0));
             }
             enable_disable_scan_btn();
             $("textarea").on("input", function () {
@@ -207,8 +221,8 @@ define(["jquery"],
             });
 
             $("#scanClean").on("click", function () {
-                $("#scan button").attr("disabled", true);
-                $("#scanMsgSource").val("");
+                $("#scan button:not(#scanOptionsToggle)").attr("disabled", true);
+                $("#scanForm")[0].reset();
                 $("#scanResult").hide();
                 $("#scanOutput tbody").remove();
                 $("html, body").animate({scrollTop:0}, 1000);
@@ -218,18 +232,25 @@ define(["jquery"],
             $("[data-upload]").on("click", function () {
                 var source = $(this).data("upload");
                 var data = $("#scanMsgSource").val();
-                var headers = (source === "fuzzy")
-                    ? {
-                        flag: $("#fuzzyFlagText").val(),
-                        weight: $("#fuzzyWeightText").val()
-                    }
-                    : {};
+                var headers = {};
                 if ($.trim(data).length > 0) {
                     if (source === "scan") {
                         var checked_server = rspamd.getSelector("selSrv");
                         var server = (checked_server === "All SERVERS") ? "local" : checked_server;
-                        scanText(rspamd, tables, data, server);
+                        headers = ["IP", "User", "From", "Rcpt", "Helo", "Hostname"].reduce(function (o, header) {
+                            var value = $("#scan-opt-" + header.toLowerCase()).val();
+                            if (value !== "") o[header] = value;
+                            return o;
+                        }, {});
+                        if ($("#scan-opt-pass-all").prop("checked")) headers.Pass = "all";
+                        scanText(rspamd, tables, data, server, headers);
                     } else {
+                        if (source === "fuzzy") {
+                            headers = {
+                                flag: $("#fuzzyFlagText").val(),
+                                weight: $("#fuzzyWeightText").val()
+                            };
+                        }
                         uploadText(rspamd, data, source, headers);
                     }
                 } else {

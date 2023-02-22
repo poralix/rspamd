@@ -25,13 +25,21 @@
 
 /* global jQuery:false, FooTable:false, Visibility:false */
 
-define(["jquery", "d3pie", "visibility", "nprogress", "stickytabs", "app/stats", "app/graph", "app/config",
+define(["jquery", "visibility", "nprogress", "stickytabs", "app/stats", "app/graph", "app/config",
     "app/symbols", "app/history", "app/upload", "app/selectors"],
 // eslint-disable-next-line max-params
-function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_config,
+function ($, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_config,
     tab_symbols, tab_history, tab_upload, tab_selectors) {
     "use strict";
     var ui = {
+        chartLegend: [
+            {label: "reject", color: "#FF0000"},
+            {label: "soft reject", color: "#BF8040"},
+            {label: "rewrite subject", color: "#FF6600"},
+            {label: "add header", color: "#FFAD00"},
+            {label: "greylist", color: "#436EEE"},
+            {label: "no action", color: "#66CC00"}
+        ],
         page_size: {
             scan: 25,
             errors: 25,
@@ -43,6 +51,9 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
         }
     };
 
+    const defaultAjaxTimeout = 20000;
+
+    const ajaxTimeoutBox = ".popover #settings-popover #ajax-timeout";
     var graphs = {};
     var tables = {};
     var neighbours = []; // list of clusters
@@ -55,6 +66,17 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
         minimum: 0.01,
         showSpinner: false,
     });
+
+    function ajaxSetup(ajax_timeout, setFieldValue, saveToLocalStorage) {
+        const timeout = (ajax_timeout && ajax_timeout >= 0) ? ajax_timeout : defaultAjaxTimeout;
+        if (saveToLocalStorage) localStorage.setItem("ajax_timeout", timeout);
+        if (setFieldValue) $(ajaxTimeoutBox).val(timeout);
+
+        $.ajaxSetup({
+            timeout: timeout,
+            jsonp: false
+        });
+    }
 
     function cleanCredentials() {
         sessionStorage.clear();
@@ -287,6 +309,8 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
                 if (!ui.read_only) tab_selectors.displayUI(ui);
             },
             complete: function () {
+                ajaxSetup(localStorage.getItem("ajax_timeout"));
+
                 if (ui.read_only) {
                     $(".ro-disable").attr("disabled", true);
                     $(".ro-hide").hide();
@@ -401,7 +425,7 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
         (function initSettings() {
             var selected_locale = null;
             var custom_locale = null;
-            var localeTextbox = ".popover #settings-popover #locale";
+            const localeTextbox = ".popover #settings-popover #locale";
 
             function validateLocale(saveToLocalStorage) {
                 function toggle_form_group_class(remove, add) {
@@ -458,15 +482,23 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
 
                 $('.popover #settings-popover input:radio[name="locale"]').val([selected_locale]);
                 $(localeTextbox).val(custom_locale);
+
+                ajaxSetup(localStorage.getItem("ajax_timeout"), true);
             });
             $(document).on("change", '.popover #settings-popover input:radio[name="locale"]', function () {
                 selected_locale = this.value;
                 localStorage.setItem("selected_locale", selected_locale);
                 validateLocale();
             });
-            $(document).on("input", ".popover #settings-popover #locale", function () {
+            $(document).on("input", localeTextbox, function () {
                 custom_locale = $(localeTextbox).val();
                 validateLocale(true);
+            });
+            $(document).on("input", ajaxTimeoutBox, function () {
+                ajaxSetup($(ajaxTimeoutBox).val(), false, true);
+            });
+            $(document).on("click", ".popover #settings-popover #ajax-timeout-restore", function () {
+                ajaxSetup(null, true, true);
             });
 
             // Dismiss Bootstrap popover by clicking outside
@@ -486,10 +518,6 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
         $("#selData").change(function () {
             selData = this.value;
             tabClick("#throughput_nav");
-        });
-        $.ajaxSetup({
-            timeout: 20000,
-            jsonp: false
         });
 
         $(document).ajaxStart(function () {
@@ -520,6 +548,11 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
         $("#selSrv").change(function () {
             checked_server = this.value;
             $("#selSrv [value=\"" + checked_server + "\"]").prop("checked", true);
+            if (checked_server === "All SERVERS") {
+                $("#learnServers").show();
+            } else {
+                $("#learnServers").hide();
+            }
             tabClick("#" + $("#navBar > ul > .nav-item > .nav-link.active").attr("id"));
         });
 
@@ -541,11 +574,17 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
     };
 
     ui.connect = function () {
+        // Prevent locking out of the WebUI if timeout is too low.
+        let timeout = localStorage.getItem("ajax_timeout");
+        if (timeout < defaultAjaxTimeout) timeout = defaultAjaxTimeout;
+        ajaxSetup(timeout);
+
         // Query "/stat" to check if user is already logged in or client ip matches "secure_ip"
         $.ajax({
             type: "GET",
             url: "stat",
-            success: function () {
+            success: function (data) {
+                sessionStorage.setItem("read_only", data.read_only);
                 displayUI();
             },
             error: function () {
@@ -593,97 +632,6 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
                 });
             }
         });
-    };
-
-    ui.drawPie = function (object, id, data, conf) {
-        var obj = object;
-        if (obj) {
-            obj.updateProp("data.content",
-                data.filter(function (elt) {
-                    return elt.value > 0;
-                })
-            );
-        } else {
-            obj = new D3pie(id,
-                $.extend({}, {
-                    header: {
-                        title: {
-                            text: "Rspamd filter stats",
-                            fontSize: 24,
-                            font: "open sans"
-                        },
-                        subtitle: {
-                            color: "#999999",
-                            fontSize: 12,
-                            font: "open sans"
-                        },
-                        titleSubtitlePadding: 9
-                    },
-                    footer: {
-                        color: "#999999",
-                        fontSize: 10,
-                        font: "open sans",
-                        location: "bottom-left"
-                    },
-                    size: {
-                        canvasWidth: 600,
-                        canvasHeight: 400,
-                        pieInnerRadius: "20%",
-                        pieOuterRadius: "85%"
-                    },
-                    data: {
-                        // "sortOrder": "value-desc",
-                        content: data.filter(function (elt) {
-                            return elt.value > 0;
-                        })
-                    },
-                    labels: {
-                        outer: {
-                            hideWhenLessThanPercentage: 1,
-                            pieDistance: 30
-                        },
-                        inner: {
-                            hideWhenLessThanPercentage: 4
-                        },
-                        mainLabel: {
-                            fontSize: 14
-                        },
-                        percentage: {
-                            color: "#eeeeee",
-                            fontSize: 14,
-                            decimalPlaces: 0
-                        },
-                        lines: {
-                            enabled: true
-                        },
-                        truncation: {
-                            enabled: true
-                        }
-                    },
-                    tooltips: {
-                        enabled: true,
-                        type: "placeholder",
-                        string: "{label}: {value} ({percentage}%)"
-                    },
-                    effects: {
-                        pullOutSegmentOnClick: {
-                            effect: "back",
-                            speed: 400,
-                            size: 8
-                        },
-                        load: {
-                            effect: "none"
-                        }
-                    },
-                    misc: {
-                        gradient: {
-                            enabled: true,
-                            percentage: 100
-                        }
-                    }
-                }, conf));
-        }
-        return obj;
     };
 
     ui.getPassword = getPassword;
@@ -803,6 +751,15 @@ function ($, D3pie, visibility, NProgress, stickyTabs, tab_stat, tab_graph, tab_
 
 
     ui.initHistoryTable = function (rspamd, data, items, table, columns, expandFirst) {
+        /* eslint-disable no-underscore-dangle */
+        FooTable.Cell.extend("collapse", function () {
+            // call the original method
+            this._super();
+            // Copy cell classes to detail row tr element
+            this._setClasses(this.$detail);
+        });
+        /* eslint-enable no-underscore-dangle */
+
         /* eslint-disable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
         FooTable.actionFilter = FooTable.Filtering.extend({
             construct: function (instance) {
