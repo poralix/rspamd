@@ -3,10 +3,10 @@
 #
 #   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Sun Sep 20 02:12:09 +07 2020
+#          Last modified: Wed May  8 14:09:59 +07 2024
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
-#         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
+#         Copyright 2019-2024 by Alex S Grebenschikov (support@poralix.com)
 #   ==============================================================================
 #
 ######################################################################################
@@ -67,6 +67,19 @@ function filterContent($str)
         'rspamd.query("saveactions",'   => 'rspamd.query("saveactions.raw",',
         'rspamd.query("scan",'          => 'rspamd.query("'.PLUGIN_BASE_URL .'scan.raw",',
         'rspamd.query("symbols",'       => 'rspamd.query("'.PLUGIN_BASE_URL .'symbols.raw",',
+
+        'common.query("actions",'       => 'common.query("'.PLUGIN_BASE_URL .'actions.raw",',
+        'common.query("auth",'          => 'common.query("auth.raw",',
+        'common.query("checkv2",'       => 'common.query("checkv2.raw",',
+        'common.query("errors",'        => 'common.query("errors.raw",',
+        'common.query("getmap",'        => 'common.query("'.PLUGIN_BASE_URL .'getmap.raw?map="+item.map,',
+        'common.query("graph",'         => 'common.query("graph.raw",',
+        'common.query("history",'       => 'common.query("history.raw",',
+        'common.query("historyreset",'  => 'common.query("historyreset.raw",',
+        'common.query("maps",'          => 'common.query("'.PLUGIN_BASE_URL .'maps.raw",',
+        'common.query("saveactions",'   => 'common.query("saveactions.raw",',
+        'common.query("scan",'          => 'common.query("'.PLUGIN_BASE_URL .'scan.raw",',
+        'common.query("symbols",'       => 'common.query("'.PLUGIN_BASE_URL .'symbols.raw",',
     );
 
     foreach ($rspamdQuery as $replace => $to)
@@ -103,6 +116,7 @@ function filterContent($str)
         'url = "fuzzyadd";',
         'url = "checkv2";',
         'rspamd.query("plugins/',
+        'common.query("plugins/',
     );
     $replace = array(
         'url: "'.PLUGIN_BASE_URL .'"',
@@ -133,6 +147,7 @@ function filterContent($str)
         'url = "fuzzyadd.raw?flag="+$("#fuzzyFlagText").val()+"&weight="+$("#fuzzyWeightText").val();',
         'url = "checkv2.raw";',
         'rspamd.query("plugins.raw?r=',
+        'common.query("plugins.raw?r=',
     );
     $str=str_replace($search, $replace, $str);
     return $str;
@@ -280,7 +295,7 @@ function filterHeaders($headers, $contentLength=false)
 {
     $output = sprintf("HTTP/1.1 %s %s", $headers["status"], $headers["status_text"])."\n";
     $output .= "Cache-Control: no-cache, must-revalidate\n";
-    unset($headers["status"]); 
+    unset($headers["status"]);
     unset($headers["status_text"]);
     foreach ($headers as $key => $val)
     {

@@ -15,17 +15,19 @@ As a reverse proxy the plugin modifies links to keep navigation working within D
 
 ## PLUGIN VERSION
 
-- Version: 0.2.5
-- Last modified: Wed Feb 22 23:39:38 +07 2023
+- Version: 0.2.6
+- Last modified: Wed May  8 14:09:59 +07 2024
 - Update URL: https://files.poralix.com/get/freesoftware/rspamd.tar.gz
 - Version URL: https://files.poralix.com/version/freesoftware/rspamd
-- Tested with version of Rspamd: rspamd-3.5-12
+- Tested with version of Rspamd: rspamd-3.9.0
 
 ## CHANGELOG
 
-- September 20, 2020: Updated for Rspamd 2.6-25.git37f19ff44.x86_64
+- May 05, 2024: Updated for rspamd-3.9.0-57
+- Feb 22, 2023: Updated for rspamd-3.5-12
+- Sep 20, 2020: Updated for Rspamd 2.6-25.git37f19ff44.x86_64
 - May 21, 2020: Updated to support Rspamd web-interface via UNIX-socket
-- Oct 8, 2019: Updated for Rspamd 2.0-43.git6ea2346e8.x86_64
+- Oct 08, 2019: Updated for Rspamd 2.0-43.git6ea2346e8.x86_64
 - May 14, 2019: Updated for Rspamd 1.9.3 (stable) and 1.9.4 (experimental)
 
 ## INSTALLATION
