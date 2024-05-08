@@ -22,22 +22,20 @@
  THE SOFTWARE.
  */
 
-/* global d3:false */
-
-define(["jquery", "d3pie"],
-    function ($, D3Pie) {
+define(["jquery", "app/common", "d3pie", "d3"],
+    ($, common, D3Pie, d3) => {
         "use strict";
         // @ ms to date
         function msToTime(seconds) {
             if (!Number.isFinite(seconds)) return "???";
             /* eslint-disable no-bitwise */
-            var years = seconds / 31536000 >> 0; // 3600*24*365
-            var months = seconds % 31536000 / 2628000 >> 0; // 3600*24*365/12
-            var days = seconds % 31536000 % 2628000 / 86400 >> 0; // 24*3600
-            var hours = seconds % 31536000 % 2628000 % 86400 / 3600 >> 0;
-            var minutes = seconds % 31536000 % 2628000 % 86400 % 3600 / 60 >> 0;
+            const years = seconds / 31536000 >> 0; // 3600*24*365
+            const months = seconds % 31536000 / 2628000 >> 0; // 3600*24*365/12
+            const days = seconds % 31536000 % 2628000 / 86400 >> 0; // 24*3600
+            const hours = seconds % 31536000 % 2628000 % 86400 / 3600 >> 0;
+            const minutes = seconds % 31536000 % 2628000 % 86400 % 3600 / 60 >> 0;
             /* eslint-enable no-bitwise */
-            var out = null;
+            let out = null;
             if (years > 0) {
                 if (months > 0) {
                     out = years + "yr " + months + "mth";
@@ -57,62 +55,62 @@ define(["jquery", "d3pie"],
         }
 
         function displayStatWidgets(checked_server) {
-            var servers = JSON.parse(sessionStorage.getItem("Credentials"));
-            var data = {};
+            const servers = JSON.parse(sessionStorage.getItem("Credentials"));
+            let data = {};
             if (servers && servers[checked_server]) {
-                data = servers[checked_server].data;
+                ({data} = servers[checked_server]);
             }
 
-            var stat_w = [];
+            const stat_w = [];
             $("#statWidgets").empty().hide();
-            $.each(data, function (i, item) {
-                var widgetsOrder = ["scanned", "no action", "greylist", "add header", "rewrite subject", "reject", "learned"];
+            $.each(data, (i, item) => {
+                const widgetsOrder = ["scanned", "no action", "greylist", "add header", "rewrite subject", "reject", "learned"];
 
                 function widget(k, v, cls) {
-                    var c = (typeof cls === "undefined") ? "" : cls;
-                    var titleAtt = d3.format(",")(v) + " " + k;
-                    return '<div class="card stat-box d-inline-block text-center shadow-sm mr-3 px-3">' +
-                      '<div class="widget overflow-hidden p-2' + c + '" title="' + titleAtt +
-                      '"><strong class="d-block mt-2 mb-1 font-weight-bold">' +
-                    d3.format(".3~s")(v) + "</strong>" + k + "</div></div>";
+                    const c = (typeof cls === "undefined") ? "" : cls;
+                    const titleAtt = d3.format(",")(v) + " " + k;
+                    return '<div class="card stat-box d-inline-block text-center shadow-sm me-3 px-3">' +
+                        '<div class="widget overflow-hidden p-2' + c + '" title="' + titleAtt +
+                        '"><strong class="d-block mt-2 mb-1 fw-bold">' +
+                        d3.format(".3~s")(v) + "</strong>" + k + "</div></div>";
                 }
 
                 if (i === "auth" || i === "error") return; // Skip to the next iteration
                 if (i === "uptime" || i === "version") {
-                    var cls = "border-right ";
-                    var val = item;
+                    let cls = "border-end ";
+                    let val = item;
                     if (i === "uptime") {
                         cls = "";
                         val = msToTime(item);
                     }
-                    $('<div class="' + cls + 'float-left px-3"><strong class="d-block mt-2 mb-1 font-weight-bold">' +
+                    $('<div class="' + cls + 'float-start px-3"><strong class="d-block mt-2 mb-1 fw-bold">' +
                       val + "</strong>" + i + "</div>")
                         .appendTo("#statWidgets");
                 } else if (i === "actions") {
-                    $.each(item, function (action, count) {
+                    $.each(item, (action, count) => {
                         stat_w[widgetsOrder.indexOf(action)] = widget(action, count);
                     });
                 } else {
                     stat_w[widgetsOrder.indexOf(i)] = widget(i, item, " text-capitalize");
                 }
             });
-            $.each(stat_w, function (i, item) {
+            $.each(stat_w, (i, item) => {
                 $(item).appendTo("#statWidgets");
             });
             $("#statWidgets > div:not(.stat-box)")
-                .wrapAll('<div class="card stat-box text-center shadow-sm float-right">' +
+                .wrapAll('<div class="card stat-box text-center shadow-sm float-end">' +
                   '<div class="widget overflow-hidden p-2 text-capitalize"></div></div>');
-            $("#statWidgets").find("div.float-right").appendTo("#statWidgets");
+            $("#statWidgets").find("div.float-end").appendTo("#statWidgets");
             $("#statWidgets").show();
 
             $("#clusterTable tbody").empty();
             $("#selSrv").empty();
-            $.each(servers, function (key, val) {
-                var row_class = "danger";
-                var glyph_status = "fas fa-times";
-                var version = "???";
-                var uptime = "???";
-                var short_id = "???";
+            $.each(servers, (key, val) => {
+                let row_class = "danger";
+                let glyph_status = "fas fa-times";
+                let version = "???";
+                let uptime = "???";
+                let short_id = "???";
                 let scan_times = {
                     data: "???",
                     title: ""
@@ -124,7 +122,7 @@ define(["jquery", "d3pie"],
                         uptime = msToTime(val.data.uptime);
                     }
                     if ("version" in val.data) {
-                        version = val.data.version;
+                        ({version} = val.data);
                     }
                     if (key === "All SERVERS") {
                         short_id = "";
@@ -138,7 +136,9 @@ define(["jquery", "d3pie"],
                             if (max) {
                                 const f = d3.format(".3f");
                                 scan_times = {
-                                    data: "<small>" + f(min) + "/</small>" + f(d3.mean(val.data.scan_times)) + "<small>/" + f(max) + "</small>",
+                                    data: "<small>" + f(min) + "/</small>" +
+                                        f(d3.mean(val.data.scan_times)) +
+                                        "<small>/" + f(max) + "</small>",
                                     title: ' title="min/avg/max"'
                                 };
                             } else {
@@ -152,12 +152,13 @@ define(["jquery", "d3pie"],
                 }
 
                 $("#clusterTable tbody").append('<tr class="' + row_class + '">' +
-                '<td class="align-middle"><input type="radio" class="form-check m-auto" name="clusterName" value="' + key + '"></td>' +
+                '<td class="align-middle"><input type="radio" class="form-check m-auto" name="clusterName" value="' +
+                    key + '"></td>' +
                 "<td>" + key + "</td>" +
                 "<td>" + val.host + "</td>" +
                 '<td class="text-center"><span class="icon"><i class="' + glyph_status + '"></i></span></td>' +
                 '<td class="text-center"' + scan_times.title + ">" + scan_times.data + "</td>" +
-                '<td class="text-right' +
+                '<td class="text-end' +
                   ((Number.isFinite(val.data.uptime) && val.data.uptime < 3600)
                       ? ' warning" title="Has been restarted within the last hour"'
                       : "") +
@@ -177,8 +178,8 @@ define(["jquery", "d3pie"],
             });
 
             function addStatfiles(server, statfiles) {
-                $.each(statfiles, function (i, statfile) {
-                    var cls = "";
+                $.each(statfiles, (i, statfile) => {
+                    let cls = "";
                     switch (statfile.symbol) {
                         case "BAYES_SPAM":
                             cls = "symbol-positive";
@@ -192,25 +193,25 @@ define(["jquery", "d3pie"],
                       (i === 0 ? '<td rowspan="' + statfiles.length + '">' + server + "</td>" : "") +
                       '<td class="' + cls + '">' + statfile.symbol + "</td>" +
                       '<td class="' + cls + '">' + statfile.type + "</td>" +
-                      '<td class="text-right ' + cls + '">' + statfile.revision + "</td>" +
-                      '<td class="text-right ' + cls + '">' + statfile.users + "</td></tr>");
+                      '<td class="text-end ' + cls + '">' + statfile.revision + "</td>" +
+                      '<td class="text-end ' + cls + '">' + statfile.users + "</td></tr>");
                 });
             }
 
             function addFuzzyStorage(server, storages) {
-                var i = 0;
-                $.each(storages, function (storage, hashes) {
+                let i = 0;
+                $.each(storages, (storage, hashes) => {
                     $("#fuzzyTable tbody").append("<tr>" +
                       (i === 0 ? '<td rowspan="' + Object.keys(storages).length + '">' + server + "</td>" : "") +
                       "<td>" + storage + "</td>" +
-                      '<td class="text-right">' + hashes + "</td></tr>");
+                      '<td class="text-end">' + hashes + "</td></tr>");
                     i++;
                 });
             }
 
             $("#bayesTable tbody, #fuzzyTable tbody").empty();
             if (checked_server === "All SERVERS") {
-                $.each(servers, function (server, val) {
+                $.each(servers, (server, val) => {
                     if (server !== "All SERVERS") {
                         addStatfiles(server, val.data.statfiles);
                         addFuzzyStorage(server, val.data.fuzzy_hashes);
@@ -222,7 +223,7 @@ define(["jquery", "d3pie"],
             }
         }
 
-        function getChart(rspamd, graphs, checked_server) {
+        function getChart(graphs, checked_server) {
             if (!graphs.chart) {
                 graphs.chart = new D3Pie("chart", {
                     labels: {
@@ -244,16 +245,16 @@ define(["jquery", "d3pie"],
                 });
             }
 
-            var data = [];
-            var creds = JSON.parse(sessionStorage.getItem("Credentials"));
+            const data = [];
+            const creds = JSON.parse(sessionStorage.getItem("Credentials"));
             // Controller doesn't return the 'actions' object until at least one message is scanned
             if (creds && creds[checked_server] && creds[checked_server].data.scanned) {
-                var actions = creds[checked_server].data.actions;
+                const {actions} = creds[checked_server].data;
 
                 ["no action", "soft reject", "add header", "rewrite subject", "greylist", "reject"]
-                    .forEach(function (action) {
+                    .forEach((action) => {
                         data.push({
-                            color: rspamd.chartLegend.find(function (item) { return item.label === action; }).color,
+                            color: common.chartLegend.find((item) => item.label === action).color,
                             label: action,
                             value: actions[action]
                         });
@@ -263,11 +264,11 @@ define(["jquery", "d3pie"],
         }
 
         // Public API
-        var ui = {
-            statWidgets: function (rspamd, graphs, checked_server) {
-                rspamd.query("stat", {
+        const ui = {
+            statWidgets: function (graphs, checked_server) {
+                common.query("stat", {
                     success: function (neighbours_status) {
-                        var neighbours_sum = {
+                        const neighbours_sum = {
                             version: neighbours_status[0].data.version,
                             uptime: 0,
                             scanned: 0,
@@ -281,9 +282,9 @@ define(["jquery", "d3pie"],
                                 "soft reject": 0,
                             }
                         };
-                        var status_count = 0;
-                        var promises = [];
-                        var to_Credentials = {
+                        let status_count = 0;
+                        const promises = [];
+                        const to_Credentials = {
                             "All SERVERS": {
                                 name: "All SERVERS",
                                 url: "",
@@ -294,16 +295,16 @@ define(["jquery", "d3pie"],
                         };
 
                         function process_node_stat(e) {
-                            var data = neighbours_status[e].data;
+                            const {data} = neighbours_status[e];
                             // Controller doesn't return the 'actions' object until at least one message is scanned
                             if (data.scanned) {
-                                for (var action in neighbours_sum.actions) {
+                                for (const action in neighbours_sum.actions) {
                                     if ({}.hasOwnProperty.call(neighbours_sum.actions, action)) {
                                         neighbours_sum.actions[action] += data.actions[action];
                                     }
                                 }
                             }
-                            ["learned", "scanned", "uptime"].forEach(function (p) {
+                            ["learned", "scanned", "uptime"].forEach((p) => {
                                 neighbours_sum[p] += data[p];
                             });
                             status_count++;
@@ -311,13 +312,13 @@ define(["jquery", "d3pie"],
 
                         // Get config_id, version and uptime using /auth query for Rspamd 2.5 and earlier
                         function get_legacy_stat(e) {
-                            var alerted = "alerted_stats_legacy_" + neighbours_status[e].name;
+                            const alerted = "alerted_stats_legacy_" + neighbours_status[e].name;
                             promises.push($.ajax({
                                 url: neighbours_status[e].url + "auth",
-                                headers: {Password:rspamd.getPassword()},
+                                headers: {Password: common.getPassword()},
                                 success: function (data) {
                                     sessionStorage.removeItem(alerted);
-                                    ["config_id", "version", "uptime"].forEach(function (p) {
+                                    ["config_id", "version", "uptime"].forEach((p) => {
                                         neighbours_status[e].data[p] = data[p];
                                     });
                                     process_node_stat(e);
@@ -325,7 +326,7 @@ define(["jquery", "d3pie"],
                                 error: function (jqXHR, textStatus, errorThrown) {
                                     if (!(alerted in sessionStorage)) {
                                         sessionStorage.setItem(alerted, true);
-                                        rspamd.alertMessage("alert-error", neighbours_status[e].name + " > " +
+                                        common.alertMessage("alert-error", neighbours_status[e].name + " > " +
                                           "Cannot receive legacy stats data" + (errorThrown ? ": " + errorThrown : ""));
                                     }
                                     process_node_stat(e);
@@ -333,7 +334,7 @@ define(["jquery", "d3pie"],
                             }));
                         }
 
-                        for (var e in neighbours_status) {
+                        for (const e in neighbours_status) {
                             if ({}.hasOwnProperty.call(neighbours_status, e)) {
                                 to_Credentials[neighbours_status[e].name] = neighbours_status[e];
                                 if (neighbours_status[e].status === true) {
@@ -348,13 +349,13 @@ define(["jquery", "d3pie"],
                                 }
                             }
                         }
-                        setTimeout(function () {
-                            $.when.apply($, promises).always(function () {
+                        setTimeout(() => {
+                            $.when.apply($, promises).always(() => {
                                 neighbours_sum.uptime = Math.floor(neighbours_sum.uptime / status_count);
                                 to_Credentials["All SERVERS"].data = neighbours_sum;
                                 sessionStorage.setItem("Credentials", JSON.stringify(to_Credentials));
                                 displayStatWidgets(checked_server);
-                                getChart(rspamd, graphs, checked_server);
+                                getChart(graphs, checked_server);
                             });
                         }, promises.length ? 100 : 0);
                     },

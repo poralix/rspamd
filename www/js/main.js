@@ -1,10 +1,10 @@
-/* global d3:true, require:false, requirejs:false */ // eslint-disable-line no-unused-vars
+/* global d3:writable, require, requirejs */ // eslint-disable-line no-unused-vars
 
 requirejs.config({
     baseUrl: "js/lib",
     paths: {
         app: "../app",
-        jquery: "jquery-3.6.1.min",
+        jquery: "jquery-3.7.1.min",
         visibility: "visibility.min",
         bootstrap: "bootstrap.bundle.min",
         codejar: "codejar.min",
@@ -14,21 +14,23 @@ requirejs.config({
         fontawesome: "fontawesome.min",
         fontawesome_solid: "solid.min",
         footable: "footable.min",
-        linenumbers: "linenumbers.min",
+        linenumbers: "codejar-linenumbers.min",
         nprogress: "nprogress.min",
         prism: "prism",
         stickytabs: "jquery.stickytabs.min"
     },
     shim: {
-        codejar: {exports: "CodeJar", deps:["linenumbers"]},
-        bootstrap: {exports:"bootstrap", deps:["jquery"]},
-        d3evolution: {exports:"D3Evolution", deps:["d3", "jquery"]},
-        d3pie: {exports:"D3Pie", deps:["d3.global", "jquery"]},
-        fontawesome: {exports: "FontAwesome", deps:["fontawesome_solid"]},
-        footable: {deps:["bootstrap", "jquery"]},
-        linenumbers: {exports: "withLineNumbers", deps:["prism"]},
+        app: {deps: ["jquery"]},
+        codejar: {exports: "CodeJar", deps: ["linenumbers"]},
+        bootstrap: {exports: "bootstrap", deps: ["jquery"]}, // Popovers require jQuery
+        d3: {exports: "d3"},
+        d3evolution: {exports: "D3Evolution", deps: ["d3.global", "jquery"]},
+        d3pie: {exports: "D3Pie", deps: ["d3.global", "jquery"]},
+        fontawesome: {exports: "FontAwesome", deps: ["fontawesome_solid"]},
+        footable: {deps: ["bootstrap", "jquery"]},
+        linenumbers: {exports: "withLineNumbers", deps: ["prism"]},
         prism: {exports: "Prism"},
-        stickytabs: {deps:["jquery"]}
+        stickytabs: {deps: ["jquery"]}
     },
     waitSeconds: 30,
 });
@@ -39,7 +41,7 @@ document.title = window.location.hostname +
     " - Rspamd Web Interface";
 
 // Ugly hack to get d3pie work with requirejs
-define("d3.global", ["d3"], function (d3global) { // eslint-disable-line strict
+define("d3.global", ["d3"], (d3global) => { // eslint-disable-line strict
     d3 = d3global;
 });
 
@@ -50,7 +52,7 @@ requirejs.onError = function (e) {
     document.getElementsByClassName("notification-area")[0].innerHTML =
         "<div class=\"alert alert-error\">" +
             "<strong>Module loading error: " + e.requireType + ", module: " + e.requireModules + "</strong>" +
-            "<button type=\"button\" class=\"btn btn-info btn-xs float-right\" " +
+            "<button type=\"button\" class=\"btn btn-info btn-xs float-end\" " +
                 "onClick=\"window.location.reload(); this.parentNode.parentNode.removeChild(this.parentNode);\" " +
                 "title=\"Reload current page\">" +
                 "<i class=\"glyphicon glyphicon-repeat\"></i> Reload" +
@@ -60,10 +62,7 @@ requirejs.onError = function (e) {
 };
 
 // Load main UI
-require(["app/rspamd", "fontawesome"],
-    function (rspamd) {
-        "use strict";
-        rspamd.setup();
-        rspamd.connect();
-    }
-);
+require(["app/rspamd"], (rspamd) => {
+    "use strict";
+    rspamd.connect();
+});

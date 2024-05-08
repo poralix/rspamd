@@ -22,18 +22,22 @@
  THE SOFTWARE.
  */
 
-define(["jquery"],
-    function ($) {
+/* global require */
+
+define(["jquery", "app/common", "app/libft"],
+    ($, common, libft) => {
         "use strict";
-        var ui = {};
+        const ui = {};
+        let files = null;
+        let filesIdx = null;
+        let scanTextHeaders = {};
 
         function cleanTextUpload(source) {
             $("#" + source + "TextSource").val("");
         }
 
-        // @upload text
-        function uploadText(rspamd, data, source, headers) {
-            var url = null;
+        function uploadText(data, source, headers) {
+            let url = null;
             if (source === "spam") {
                 url = "learnspam";
             } else if (source === "ham") {
@@ -45,15 +49,15 @@ define(["jquery"],
             }
 
             function server() {
-                if (rspamd.getSelector("selSrv") === "All SERVERS" &&
-                    rspamd.getSelector("selLearnServers") === "random") {
-                    const servers = $("#selSrv option").slice(1).map(function (_, o) { return o.value; });
+                if (common.getSelector("selSrv") === "All SERVERS" &&
+                    common.getSelector("selLearnServers") === "random") {
+                    const servers = $("#selSrv option").slice(1).map((_, o) => o.value);
                     return servers[Math.floor(Math.random() * servers.length)];
                 }
                 return null;
             }
 
-            rspamd.query(url, {
+            common.query(url, {
                 data: data,
                 params: {
                     processData: false,
@@ -62,204 +66,227 @@ define(["jquery"],
                 headers: headers,
                 success: function (json, jqXHR) {
                     cleanTextUpload(source);
-                    rspamd.alertMessage("alert-success", "Data successfully uploaded");
+                    common.alertMessage("alert-success", "Data successfully uploaded");
                     if (jqXHR.status !== 200) {
-                        rspamd.alertMessage("alert-info", jqXHR.statusText);
+                        common.alertMessage("alert-info", jqXHR.statusText);
                     }
                 },
                 server: server()
             });
         }
 
-        function columns_v2() {
-            return [{
-                name: "id",
-                title: "ID",
-                style: {
-                    "font-size": "11px",
-                    "minWidth": 130,
-                    "overflow": "hidden",
-                    "textOverflow": "ellipsis",
-                    "wordBreak": "break-all",
-                    "whiteSpace": "normal"
-                }
-            }, {
-                name: "action",
-                title: "Action",
-                style: {
-                    "font-size": "11px",
-                    "minwidth": 82
-                }
-            }, {
-                name: "score",
-                title: "Score",
-                style: {
-                    "font-size": "11px",
-                    "maxWidth": 110
-                },
-                sortValue: function (val) { return Number(val.options.sortValue); }
-            }, {
-                name: "symbols",
-                title: "Symbols" +
-                        '<div class="sym-order-toggle">' +
-                            '<br><span style="font-weight:normal;">Sort by:</span><br>' +
-                            '<div class="btn-group btn-group-toggle btn-group-xs btn-sym-order-scan" data-toggle="buttons">' +
-                                '<label type="button" class="btn btn-outline-secondary btn-sym-scan-magnitude">' +
-                                    '<input type="radio" value="magnitude">Magnitude</label>' +
-                                '<label type="button" class="btn btn-outline-secondary btn-sym-scan-score">' +
-                                    '<input type="radio" value="score">Value</label>' +
-                                '<label type="button" class="btn btn-outline-secondary btn-sym-scan-name">' +
-                                    '<input type="radio" value="name">Name</label>' +
-                            "</div>" +
-                        "</div>",
-                breakpoints: "all",
-                style: {
-                    "font-size": "11px",
-                    "width": 550,
-                    "maxWidth": 550
-                }
-            }, {
-                name: "time_real",
-                title: "Scan time",
-                breakpoints: "xs sm md",
-                style: {
-                    "font-size": "11px",
-                    "maxWidth": 72
-                },
-                sortValue: function (val) { return Number(val); }
-            }, {
-                sorted: true,
-                direction: "DESC",
-                name: "time",
-                title: "Time",
-                style: {
-                    "font-size": "11px"
-                },
-                sortValue: function (val) { return Number(val.options.sortValue); }
-            }];
+        function enable_disable_scan_btn(disable) {
+            $("#scan button:not(#cleanScanHistory, #scanOptionsToggle)")
+                .prop("disabled", (disable || $.trim($("textarea").val()).length === 0));
         }
 
-        // @upload text
-        function scanText(rspamd, tables, data, server, headers) {
-            rspamd.query("checkv2", {
+        function setFileInputFiles(i) {
+            const dt = new DataTransfer();
+            if (arguments.length) dt.items.add(files[i]);
+            $("#formFile").prop("files", dt.files);
+        }
+
+        function readFile(callback, i) {
+            const reader = new FileReader();
+            reader.readAsText(files[(arguments.length === 1) ? 0 : i]);
+            reader.onload = () => callback(reader.result);
+        }
+
+        function scanText(data) {
+            enable_disable_scan_btn(true);
+            common.query("checkv2", {
                 data: data,
                 params: {
                     processData: false,
                 },
                 method: "POST",
-                headers: headers,
+                headers: scanTextHeaders,
                 success: function (neighbours_status) {
-                    function scrollTop(rows_total) {
-                        // Is there a way to get an event when all rows are loaded?
-                        rspamd.waitForRowsDisplayed("scan", rows_total, function () {
-                            $("html, body").animate({
-                                scrollTop: $("#scanResult").offset().top
-                            }, 1000);
-                        });
-                    }
-
-                    var json = neighbours_status[0].data;
+                    const json = neighbours_status[0].data;
                     if (json.action) {
-                        rspamd.alertMessage("alert-success", "Data successfully scanned");
+                        common.alertMessage("alert-success", "Data successfully scanned");
 
-                        var rows_total = $("#historyTable_scan > tbody > tr:not(.footable-detail-row)").length + 1;
-                        var o = rspamd.process_history_v2(rspamd, {rows:[json]}, "scan");
-                        var items = o.items;
-                        rspamd.symbols.scan.push(o.symbols[0]);
+                        const o = libft.process_history_v2({rows: [json]}, "scan");
+                        const {items} = o;
+                        common.symbols.scan.push(o.symbols[0]);
 
-                        if (Object.prototype.hasOwnProperty.call(tables, "scan")) {
-                            tables.scan.rows.load(items, true);
-                            scrollTop(rows_total);
+                        if (files) items[0].file = files[filesIdx].name;
+
+                        if (Object.prototype.hasOwnProperty.call(common.tables, "scan")) {
+                            common.tables.scan.rows.load(items, true);
                         } else {
-                            rspamd.destroyTable("scan");
-                            // Is there a way to get an event when the table is destroyed?
-                            setTimeout(function () {
-                                rspamd.initHistoryTable(rspamd, data, items, "scan", columns_v2(), true);
-                                scrollTop(rows_total);
-                            }, 200);
+                            require(["footable"], () => {
+                                libft.initHistoryTable(data, items, "scan", libft.columns_v2("scan"), true,
+                                    () => {
+                                        if (files && filesIdx < files.length - 1) {
+                                            readFile((result) => {
+                                                if (filesIdx === files.length - 1) {
+                                                    $("#scanMsgSource").val(result);
+                                                    setFileInputFiles(filesIdx);
+                                                }
+                                                scanText(result);
+                                            }, ++filesIdx);
+                                        } else {
+                                            enable_disable_scan_btn();
+                                            $("#cleanScanHistory").removeAttr("disabled");
+                                            $("html, body").animate({
+                                                scrollTop: $("#scanResult").offset().top
+                                            }, 1000);
+                                        }
+                                    });
+                            });
                         }
                     } else {
-                        rspamd.alertMessage("alert-error", "Cannot scan data");
+                        common.alertMessage("alert-error", "Cannot scan data");
                     }
                 },
+                error: enable_disable_scan_btn,
                 errorMessage: "Cannot upload data",
                 statusCode: {
                     404: function () {
-                        rspamd.alertMessage("alert-error", "Cannot upload data, no server found");
+                        common.alertMessage("alert-error", "Cannot upload data, no server found");
                     },
                     500: function () {
-                        rspamd.alertMessage("alert-error", "Cannot tokenize message: no text data");
+                        common.alertMessage("alert-error", "Cannot tokenize message: no text data");
                     },
                     503: function () {
-                        rspamd.alertMessage("alert-error", "Cannot tokenize message: no text data");
+                        common.alertMessage("alert-error", "Cannot tokenize message: no text data");
                     }
                 },
-                server: server
+                server: common.getServer()
             });
         }
 
-        ui.setup = function (rspamd, tables) {
-            rspamd.set_page_size("scan", $("#scan_page_size").val());
-            rspamd.bindHistoryTableEventHandlers("scan", 3);
-
-            $("#cleanScanHistory").off("click");
-            $("#cleanScanHistory").on("click", function (e) {
-                e.preventDefault();
-                if (!confirm("Are you sure you want to clean scan history?")) { // eslint-disable-line no-alert
-                    return;
+        function getFuzzyHashes(data) {
+            function fillHashTable(rules) {
+                $("#hashTable tbody").empty();
+                for (const [rule, hashes] of Object.entries(rules)) {
+                    hashes.forEach((hash, i) => {
+                        $("#hashTable tbody").append("<tr>" +
+                          (i === 0 ? '<td rowspan="' + Object.keys(hashes).length + '">' + rule + "</td>" : "") +
+                          "<td>" + hash + "</td></tr>");
+                    });
                 }
-                rspamd.destroyTable("scan");
-                rspamd.symbols.scan.length = 0;
-            });
-
-            function enable_disable_scan_btn() {
-                $("#scan button:not(#scanOptionsToggle)").prop("disabled", ($.trim($("textarea").val()).length === 0));
+                $("#hash-card").slideDown();
             }
-            enable_disable_scan_btn();
-            $("textarea").on("input", function () {
-                enable_disable_scan_btn();
-            });
 
-            $("#scanClean").on("click", function () {
-                $("#scan button:not(#scanOptionsToggle)").attr("disabled", true);
-                $("#scanForm")[0].reset();
-                $("#scanResult").hide();
-                $("#scanOutput tbody").remove();
-                $("html, body").animate({scrollTop:0}, 1000);
-                return false;
-            });
-            // @init upload
-            $("[data-upload]").on("click", function () {
-                var source = $(this).data("upload");
-                var data = $("#scanMsgSource").val();
-                var headers = {};
-                if ($.trim(data).length > 0) {
-                    if (source === "scan") {
-                        var checked_server = rspamd.getSelector("selSrv");
-                        var server = (checked_server === "All SERVERS") ? "local" : checked_server;
-                        headers = ["IP", "User", "From", "Rcpt", "Helo", "Hostname"].reduce(function (o, header) {
-                            var value = $("#scan-opt-" + header.toLowerCase()).val();
-                            if (value !== "") o[header] = value;
-                            return o;
-                        }, {});
-                        if ($("#scan-opt-pass-all").prop("checked")) headers.Pass = "all";
-                        scanText(rspamd, tables, data, server, headers);
+            common.query("plugins/fuzzy/hashes?flag=" + $("#fuzzy-flag").val(), {
+                data: data,
+                params: {
+                    processData: false,
+                },
+                method: "POST",
+                success: function (neighbours_status) {
+                    const json = neighbours_status[0].data;
+                    if (json.success) {
+                        common.alertMessage("alert-success", "Message successfully processed");
+                        fillHashTable(json.hashes);
                     } else {
-                        if (source === "fuzzy") {
-                            headers = {
-                                flag: $("#fuzzyFlagText").val(),
-                                weight: $("#fuzzyWeightText").val()
-                            };
-                        }
-                        uploadText(rspamd, data, source, headers);
+                        common.alertMessage("alert-error", "Unexpected error processing message");
                     }
-                } else {
-                    rspamd.alertMessage("alert-error", "Message source field cannot be blank");
-                }
-                return false;
+                },
+                server: common.getServer()
             });
-        };
+        }
 
+
+        libft.set_page_size("scan", $("#scan_page_size").val());
+        libft.bindHistoryTableEventHandlers("scan", 3);
+
+        $("#cleanScanHistory").off("click");
+        $("#cleanScanHistory").on("click", (e) => {
+            e.preventDefault();
+            if (!confirm("Are you sure you want to clean scan history?")) { // eslint-disable-line no-alert
+                return;
+            }
+            libft.destroyTable("scan");
+            common.symbols.scan.length = 0;
+            $("#cleanScanHistory").attr("disabled", true);
+        });
+
+        enable_disable_scan_btn();
+        $("textarea").on("input", () => {
+            enable_disable_scan_btn();
+            if (files) {
+                files = null;
+                setFileInputFiles();
+            }
+        });
+
+        $("#scanClean").on("click", () => {
+            enable_disable_scan_btn(true);
+            $("#scanForm")[0].reset();
+            $("html, body").animate({scrollTop: 0}, 1000);
+            return false;
+        });
+
+        $(".card-close-btn").on("click", function () {
+            $(this).closest(".card").slideUp();
+        });
+
+        function getScanTextHeaders() {
+            scanTextHeaders = ["IP", "User", "From", "Rcpt", "Helo", "Hostname"].reduce((o, header) => {
+                const value = $("#scan-opt-" + header.toLowerCase()).val();
+                if (value !== "") o[header] = value;
+                return o;
+            }, {});
+            if ($("#scan-opt-pass-all").prop("checked")) scanTextHeaders.Pass = "all";
+        }
+
+        $("[data-upload]").on("click", function () {
+            const source = $(this).data("upload");
+            const data = $("#scanMsgSource").val();
+            if ($.trim(data).length > 0) {
+                if (source === "scan") {
+                    getScanTextHeaders();
+                    scanText(data);
+                } else if (source === "compute-fuzzy") {
+                    getFuzzyHashes(data);
+                } else {
+                    let headers = {};
+                    if (source === "fuzzy") {
+                        headers = {
+                            flag: $("#fuzzyFlagText").val(),
+                            weight: $("#fuzzyWeightText").val()
+                        };
+                    }
+                    uploadText(data, source, headers);
+                }
+            } else {
+                common.alertMessage("alert-error", "Message source field cannot be blank");
+            }
+            return false;
+        });
+
+        const dragoverClassList = "outline-dashed-primary bg-primary-subtle";
+        $("#scanMsgSource")
+            .on("dragenter dragover dragleave drop", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            })
+            .on("dragenter dragover", () => {
+                $("#scanMsgSource").addClass(dragoverClassList);
+            })
+            .on("dragleave drop", () => {
+                $("#scanMsgSource").removeClass(dragoverClassList);
+            })
+            .on("drop", (e) => {
+                ({files} = e.originalEvent.dataTransfer);
+                filesIdx = 0;
+
+                if (files.length === 1) {
+                    setFileInputFiles(0);
+                    enable_disable_scan_btn();
+                    readFile((result) => {
+                        $("#scanMsgSource").val(result);
+                        enable_disable_scan_btn();
+                    });
+                // eslint-disable-next-line no-alert
+                } else if (files.length < 10 || confirm("Are you sure you want to scan " + files.length + " files?")) {
+                    getScanTextHeaders();
+                    readFile((result) => scanText(result));
+                }
+            });
 
         return ui;
     });

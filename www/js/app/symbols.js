@@ -22,28 +22,31 @@
  THE SOFTWARE.
  */
 
-/* global FooTable:false */
+/* global FooTable */
 
-define(["jquery", "footable"],
-    function ($) {
+define(["jquery", "app/common", "footable"],
+    ($, common) => {
         "use strict";
-        var ui = {};
+        const ui = {};
+        let altered = {};
 
-        function saveSymbols(rspamd, action, id, server) {
-            var inputs = $("#" + id + " :input[data-role=\"numerictextbox\"]");
-            var url = action;
-            var values = [];
-            $(inputs).each(function () {
-                values.push({
-                    name: $(this).attr("id").substring(5),
-                    value: parseFloat($(this).val())
-                });
-            });
+        function clear_altered() {
+            $("#save-alert").addClass("d-none");
+            altered = {};
+        }
 
-            rspamd.query(url, {
+        function saveSymbols(server) {
+            $("#save-alert button").attr("disabled", true);
+
+            const values = [];
+            Object.entries(altered).forEach(([key, value]) => values.push({name: key, value: value}));
+
+            common.query("./savesymbols", {
                 success: function () {
-                    rspamd.alertMessage("alert-modal alert-success", "Symbols successfully saved");
+                    clear_altered();
+                    common.alertMessage("alert-modal alert-success", "Symbols successfully saved");
                 },
+                complete: () => $("#save-alert button").removeAttr("disabled"),
                 errorMessage: "Save symbols error",
                 method: "POST",
                 params: {
@@ -53,40 +56,30 @@ define(["jquery", "footable"],
                 server: server
             });
         }
-        function decimalStep(number) {
-            var digits = Number(number).toFixed(20).replace(/^-?\d*\.?|0+$/g, "").length;
-            return (digits === 0 || digits > 4) ? 0.1 : 1.0 / Math.pow(10, digits);
-        }
-        function process_symbols_data(rspamd, data) {
-            var items = [];
-            var lookup = {};
-            var freqs = [];
-            var distinct_groups = [];
-            var selected_server = rspamd.getSelector("selSrv");
 
-            data.forEach(function (group) {
-                group.rules.forEach(function (item) {
-                    var max = 20;
-                    var min = -20;
-                    if (item.weight > max) {
-                        max = item.weight * 2;
-                    }
+        function process_symbols_data(data) {
+            const items = [];
+            const lookup = {};
+            const freqs = [];
+            const distinct_groups = [];
+
+            data.forEach((group) => {
+                group.rules.forEach((item) => {
+                    const formatter = new Intl.NumberFormat("en", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 6,
+                        useGrouping: false
+                    });
                     item.group = group.group;
-                    if (item.weight < min) {
-                        min = item.weight * 2;
-                    }
-                    var label_class = "";
+                    let label_class = "";
                     if (item.weight < 0) {
                         label_class = "scorebar-ham";
                     } else if (item.weight > 0) {
                         label_class = "scorebar-spam";
                     }
-                    item.weight = "<input class=\"form-control input-sm mb-disabled " + label_class +
-                    "\" data-role=\"numerictextbox\" autocomplete=\"off\" type=\"number\" class=\"input\" min=\"" +
-                    min + "\" max=\"" +
-                    max + "\" step=\"" + decimalStep(item.weight) +
-                    "\" tabindex=\"1\" value=\"" + Number(item.weight).toFixed(3) +
-                    "\" id=\"_sym_" + item.symbol + "\"></input>";
+                    item.weight = '<input class="form-control input-sm mb-disabled scorebar ' + label_class +
+                        '" autocomplete="off" type="number" step="0.01" tabindex="1" ' +
+                        'value="' + formatter.format(item.weight) + '" id="_sym_' + item.symbol + '"></input>';
                     if (!item.time) {
                         item.time = 0;
                     }
@@ -100,25 +93,16 @@ define(["jquery", "footable"],
                         lookup[item.group] = 1;
                         distinct_groups.push(item.group);
                     }
-                    item.save =
-                        "<button data-save=\"" + selected_server +
-                        "\" title=\"Save changes to the selected server\" " +
-                        "type=\"button\" class=\"btn btn-primary btn-sm mb-disabled\">Save</button>&nbsp;" +
-                        "<button data-save=\"All SERVERS" +
-                        "\" title=\"Save changes to all servers\" " +
-                        "type=\"button\" class=\"btn btn-primary btn-sm mb-disabled\">Save in cluster</button>";
                     items.push(item);
                 });
             });
 
             // For better mean calculations
-            var avg_freq = freqs.sort(function (a, b) {
-                return Number(a) < Number(b);
-            }).reduce(function (f1, acc) {
-                return f1 + acc;
-            }) / (freqs.length !== 0 ? freqs.length : 1.0);
-            var mult = 1.0;
-            var exp = 0.0;
+            const avg_freq = freqs
+                .sort((a, b) => Number(a) < Number(b))
+                .reduce((f1, acc) => f1 + acc) / (freqs.length !== 0 ? freqs.length : 1.0);
+            let mult = 1.0;
+            let exp = 0.0;
 
             if (avg_freq > 0.0) {
                 while (mult * avg_freq < 1.0) {
@@ -126,7 +110,7 @@ define(["jquery", "footable"],
                     exp++;
                 }
             }
-            $.each(items, function (i, item) {
+            $.each(items, (i, item) => {
                 item.frequency = Number(item.frequency) * mult;
 
                 if (exp > 0) {
@@ -138,23 +122,26 @@ define(["jquery", "footable"],
             return [items, distinct_groups];
         }
         // @get symbols into modal form
-        ui.getSymbols = function (rspamd, tables, checked_server) {
-            rspamd.query("symbols", {
+        ui.getSymbols = function () {
+            $("#refresh, #updateSymbols").attr("disabled", true);
+            clear_altered();
+            common.query("symbols", {
                 success: function (json) {
-                    var data = json[0].data;
-                    var items = process_symbols_data(rspamd, data);
+                    const [{data}] = json;
+                    const items = process_symbols_data(data);
 
                     /* eslint-disable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
                     FooTable.groupFilter = FooTable.Filtering.extend({
                         construct: function (instance) {
                             this._super(instance);
-                            this.groups = items[1];
+                            [,this.groups] = items;
                             this.def = "Any group";
                             this.$group = null;
                         },
                         $create: function () {
                             this._super();
-                            var self = this, $form_grp = $("<div/>", {
+                            const self = this;
+                            const $form_grp = $("<div/>", {
                                 class: "form-group"
                             }).append($("<label/>", {
                                 class: "sr-only",
@@ -162,7 +149,7 @@ define(["jquery", "footable"],
                             })).prependTo(self.$form);
 
                             self.$group = $("<select/>", {
-                                class: "form-control"
+                                class: "form-select"
                             }).on("change", {
                                 self: self
                             }, self._onStatusDropdownChanged).append(
@@ -170,12 +157,13 @@ define(["jquery", "footable"],
                                     text: self.def
                                 })).appendTo($form_grp);
 
-                            $.each(self.groups, function (i, group) {
+                            $.each(self.groups, (i, group) => {
                                 self.$group.append($("<option/>").text(group));
                             });
                         },
                         _onStatusDropdownChanged: function (e) {
-                            var self = e.data.self, selected = $(this).val();
+                            const {self} = e.data;
+                            const selected = $(this).val();
                             if (selected !== self.def) {
                                 self.addFilter("group", selected, ["group"]);
                             } else {
@@ -185,7 +173,7 @@ define(["jquery", "footable"],
                         },
                         draw: function () {
                             this._super();
-                            var group = this.find("group");
+                            const group = this.find("group");
                             if (group instanceof FooTable.Filter) {
                                 this.$group.val(group.query.val());
                             } else {
@@ -195,15 +183,17 @@ define(["jquery", "footable"],
                     });
                     /* eslint-enable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
 
-                    tables.symbols = FooTable.init("#symbolsTable", {
+                    common.tables.symbols = FooTable.init("#symbolsTable", {
                         columns: [
-                            {sorted:true, direction:"ASC", name:"group", title:"Group", style:{"font-size":"11px"}},
-                            {name:"symbol", title:"Symbol", style:{"font-size":"11px"}},
-                            {name:"description", title:"Description", breakpoints:"xs sm", style:{"font-size":"11px"}},
-                            {name:"weight", title:"Score", style:{"font-size":"11px"}},
-                            {name:"frequency", title:"Frequency", breakpoints:"xs sm", style:{"font-size":"11px"}, sortValue:function (value) { return Number(value).toFixed(2); }},
-                            {name:"time", title:"Avg. time", breakpoints:"xs sm", style:{"font-size":"11px"}},
-                            {name:"save", title:"Save", style:{"font-size":"11px"}},
+                            {sorted: true, direction: "ASC", name: "group", title: "Group"},
+                            {name: "symbol", title: "Symbol"},
+                            {name: "description", title: "Description", breakpoints: "xs sm"},
+                            {name: "weight", title: "Score"},
+                            {name: "frequency",
+                                title: "Frequency",
+                                breakpoints: "xs sm",
+                                sortValue: function (value) { return Number(value).toFixed(2); }},
+                            {name: "time", title: "Avg. time", breakpoints: "xs sm"},
                         ],
                         rows: items[0],
                         paging: {
@@ -224,37 +214,52 @@ define(["jquery", "footable"],
                         },
                         on: {
                             "ready.ft.table": function () {
-                                if (rspamd.read_only) {
+                                if (common.read_only) {
                                     $(".mb-disabled").attr("disabled", true);
                                 }
-                            }
+                            },
+                            "postdraw.ft.table":
+                                () => $("#refresh, #updateSymbols").removeAttr("disabled")
                         }
                     });
                 },
-                server: (checked_server === "All SERVERS") ? "local" : checked_server
+                error: () => $("#refresh, #updateSymbols").removeAttr("disabled"),
+                server: common.getServer()
             });
-            $("#symbolsTable")
-                .off("click", ":button")
-                .on("click", ":button", function () {
-                    var value = $(this).data("save");
-                    if (!value) return;
-                    saveSymbols(rspamd, "./savesymbols", "symbolsTable", value);
-                });
         };
 
-        ui.setup = function (rspamd, tables) {
-            $("#updateSymbols").on("click", function (e) {
-                e.preventDefault();
-                var checked_server = rspamd.getSelector("selSrv");
-                rspamd.query("symbols", {
-                    success: function (data) {
-                        var items = process_symbols_data(rspamd, data[0].data)[0];
-                        tables.symbols.rows.load(items);
-                    },
-                    server: (checked_server === "All SERVERS") ? "local" : checked_server
-                });
+
+        $("#updateSymbols").on("click", (e) => {
+            e.preventDefault();
+            $("#refresh, #updateSymbols").attr("disabled", true);
+            clear_altered();
+            common.query("symbols", {
+                success: function (data) {
+                    const [items] = process_symbols_data(data[0].data);
+                    common.tables.symbols.rows.load(items);
+                },
+                error: () => $("#refresh, #updateSymbols").removeAttr("disabled"),
+                server: common.getServer()
             });
-        };
+        });
+
+        $("#symbolsTable")
+            .on("input", ".scorebar", ({target}) => {
+                const t = $(target);
+                t.removeClass("scorebar-ham scorebar-spam");
+                if (target.value < 0) {
+                    t.addClass("scorebar-ham");
+                } else if (target.value > 0) {
+                    t.addClass("scorebar-spam");
+                }
+            })
+            .on("change", ".scorebar", ({target}) => {
+                altered[$(target).attr("id").substring(5)] = parseFloat(target.value);
+                $("#save-alert").removeClass("d-none");
+            });
+
+        $("#save-alert button")
+            .on("click", ({target}) => saveSymbols($(target).data("save")));
 
         return ui;
     });
