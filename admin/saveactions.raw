@@ -1,4 +1,4 @@
-#!/usr/local/bin/php -c /usr/local/directadmin/plugins/rspamd/php.ini
+#!/usr/local/bin/php -c/usr/local/directadmin/plugins/rspamd/php.ini
 <?php
 ######################################################################################
 #
