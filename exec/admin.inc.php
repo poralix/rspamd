@@ -72,7 +72,6 @@ if ($plugin->makeRequest() && $plugin->getResponseHeaders())
 {
     $bodyOutput = filterContent($plugin->getResponseBody());
 
-
     if (defined('ADMIN_RAW_CONTENT') && ADMIN_RAW_CONTENT)
     {
         if ($responseHeaders=parseHeaders($plugin->getResponseHeaders()))
@@ -84,7 +83,6 @@ if ($plugin->makeRequest() && $plugin->getResponseHeaders())
             printHeaders(false, strlen($bodyOutput));
         }
     }
-
     print($bodyOutput);
 }
 else
@@ -95,3 +93,4 @@ else
         print json_encode(array("error" => "An error occurred!"));
     }
 }
+

@@ -68,18 +68,24 @@ function filterContent($str)
         'rspamd.query("scan",'          => 'rspamd.query("'.PLUGIN_BASE_URL .'scan.raw",',
         'rspamd.query("symbols",'       => 'rspamd.query("'.PLUGIN_BASE_URL .'symbols.raw",',
 
-        'common.query("actions",'       => 'common.query("'.PLUGIN_BASE_URL .'actions.raw",',
-        'common.query("auth",'          => 'common.query("auth.raw",',
-        'common.query("checkv2",'       => 'common.query("checkv2.raw",',
-        'common.query("errors",'        => 'common.query("errors.raw",',
-        'common.query("getmap",'        => 'common.query("'.PLUGIN_BASE_URL .'getmap.raw?map="+item.map,',
-        'common.query("graph",'         => 'common.query("graph.raw",',
-        'common.query("history",'       => 'common.query("history.raw",',
-        'common.query("historyreset",'  => 'common.query("historyreset.raw",',
-        'common.query("maps",'          => 'common.query("'.PLUGIN_BASE_URL .'maps.raw",',
-        'common.query("saveactions",'   => 'common.query("saveactions.raw",',
-        'common.query("scan",'          => 'common.query("'.PLUGIN_BASE_URL .'scan.raw",',
-        'common.query("symbols",'       => 'common.query("'.PLUGIN_BASE_URL .'symbols.raw",',
+        'common.query("actions",'            => 'common.query("'.PLUGIN_BASE_URL .'actions.raw",',
+        'common.query("auth",'               => 'common.query("auth.raw",',
+        'common.query("bayes/classifiers",'  => 'common.query("classifiers.raw",',
+        'common.query("checkv2",'            => 'common.query("checkv2.raw",',
+        'common.query("errors",'             => 'common.query("errors.raw",',
+        'common.query("getmap",'             => 'common.query("'.PLUGIN_BASE_URL .'getmap.raw?map="+item.map,',
+        'common.query("graph",'              => 'common.query("graph.raw",',
+        'common.query(`history?'             => 'common.query(`history.raw?',
+        'common.query("history",'            => 'common.query("history.raw",',
+        'common.query("historyreset",'       => 'common.query("historyreset.raw",',
+        'common.query("maps",'               => 'common.query("'.PLUGIN_BASE_URL .'maps.raw",',
+        'common.query("saveactions",'        => 'common.query("saveactions.raw",',
+        'common.query("scan",'               => 'common.query("'.PLUGIN_BASE_URL .'scan.raw",',
+        'common.query("symbols",'            => 'common.query("'.PLUGIN_BASE_URL .'symbols.raw",',
+
+        'common.query("plugins/selectors/check_selector?selector="' => 'common.query("check_selector.raw?selector="',
+        'common.query("plugins/selectors/check_message?selector="' => 'common.query("check_message.raw?selector="',
+
     );
 
     foreach ($rspamdQuery as $replace => $to)
@@ -95,6 +101,7 @@ function filterContent($str)
         'ui.connect();',
         '</body>',
         '"./css/',
+        '"../img/',
         '"./img/',
         '"./js/',
         'url(../fonts/',
@@ -115,6 +122,10 @@ function filterContent($str)
         'url = "learnspam";',
         'url = "fuzzyadd";',
         'url = "checkv2";',
+        'data-upload="learnham"',
+        'data-upload="learnspam"',
+        'data-upload="fuzzyadd"',
+        'data-upload="checkv2"',
         'rspamd.query("plugins/',
         'common.query("plugins/',
     );
@@ -126,6 +137,7 @@ function filterContent($str)
         'top.location.href="/";',
         "$preBody\n</body>",
         '"' .    PLUGIN_CSS_URL  . '?r=',
+        '"' .    PLUGIN_IMG_URL  . '?r=',
         '"' .    PLUGIN_IMG_URL  . '?r=',
         '"' .    PLUGIN_JS_URL   . '?r=',
         'url(' . PLUGIN_FONT_URL . '?r=',
@@ -146,6 +158,10 @@ function filterContent($str)
         'url = "learnspam.raw";',
         'url = "fuzzyadd.raw?flag="+$("#fuzzyFlagText").val()+"&weight="+$("#fuzzyWeightText").val();',
         'url = "checkv2.raw";',
+        'data-upload="learnham.raw"',
+        'data-upload="learnspam.raw"',
+        'data-upload="fuzzyadd.raw"',
+        'data-upload="checkv2.raw"',
         'rspamd.query("plugins.raw?r=',
         'common.query("plugins.raw?r=',
     );
@@ -164,6 +180,7 @@ function prepareRequest($requestUrl, $resourceUrl=false)
         'apple-touch-icon.png',
         'safari-pinned-tab.svg',
         'favicon.ico',
+        'drop-area.svg',
     );
 
     $rspamdQuery = array(
@@ -211,6 +228,11 @@ function prepareRequest($requestUrl, $resourceUrl=false)
             $contentType = 'PNG';
             $url = sprintf('%s/img/%s',$PRE_URL,$resourceUrl);
         }
+        elseif (($requestUrl == 'img') && (strpos($resourceUrl, '.svg') !== false))
+        {
+            $contentType = 'SVG';
+            $url = sprintf('%s/img/%s',$PRE_URL,$resourceUrl);
+        }
         elseif (($requestUrl == 'fonts') && (strpos($resourceUrl, '.woff') !== false))
         {
             $contentType = 'WOFF';
@@ -241,6 +263,13 @@ function prepareRequest($requestUrl, $resourceUrl=false)
             $contentType = 'JSON';
             $type = (isset($_GET['type']) && $_GET['type']) ? $_GET['type'] : '';
             $url = sprintf('%s/%s',$PRE_URL,$requestUrl.'?type='. $type);
+        }
+        elseif ($requestUrl == 'history')
+        {
+            $contentType = 'JSON';
+            $from = isset($_GET['from']) ? intval($_GET['from']) : 0;
+            $to = isset($_GET['to']) ? intval($_GET['to']) : 999;
+            $url = sprintf('%s/%s?from=%d&to=%d',$PRE_URL,$requestUrl,$from,$to);
         }
         elseif ($requestUrl == 'getmap')
         {
@@ -281,6 +310,26 @@ function prepareRequest($requestUrl, $resourceUrl=false)
                 readfile(PLUGIN_CSS_DIR .'/bootstrap.min.css.map');
                 exit;
             }
+        }
+        elseif ($requestUrl == 'plugins/selectors/check_selector')
+        {
+            $contentType = 'JSON';
+            define('SAVE_CONTENT_TYPE', 'RAW');
+            $selector = (isset($_GET['selector']) && $_GET['selector']) ? $_GET['selector'] : '';
+            $url = sprintf('%s/plugins/selectors/check_selector?selector=%s',$PRE_URL,$selector);
+        }
+        elseif ($requestUrl == 'plugins/selectors/check_message')
+        {
+            $contentType = 'JSON';
+            define('SAVE_CONTENT_TYPE', 'RAW');
+            $selector = (isset($_GET['selector']) && $_GET['selector']) ? $_GET['selector'] : '';
+            $url = sprintf('%s/plugins/selectors/check_message?selector=%s',$PRE_URL,$selector);
+        }
+        elseif ($requestUrl == 'bayes/classifiers')
+        {
+            $contentType = 'JSON';
+            define('SAVE_CONTENT_TYPE', 'RAW');
+            $url = sprintf('%s/%s',$PRE_URL,'bayes/classifiers');
         }
         else
         {

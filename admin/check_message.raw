@@ -1,0 +1,21 @@
+#!/usr/local/bin/php -c/usr/local/directadmin/plugins/rspamd/php.ini
+<?php
+######################################################################################
+#
+#   Rspamd web interface plugin for Directadmin $ 0.2
+#   ==============================================================================
+#          Last modified: Thu May 21 20:33:07 +07 2020
+#   ==============================================================================
+#         Written by Alex S Grebenschikov (support@poralix.com)
+#         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
+#   ==============================================================================
+#
+######################################################################################
+
+?>
+<?php
+
+error_reporting(0);
+define("IN_DA_PLUGIN",true);
+define("REQUEST_URL", "plugins/selectors/check_message");
+require_once("/usr/local/directadmin/plugins/rspamd/exec/raw.inc.php");
