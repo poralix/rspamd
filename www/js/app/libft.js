@@ -4,6 +4,7 @@ define(["jquery", "app/common", "footable"],
     ($, common) => {
         "use strict";
         const ui = {};
+        const columnsCustom = JSON.parse(localStorage.getItem("columns")) || {};
 
         let pageSizeTimerId = null;
         let pageSizeInvocationCounter = 0;
@@ -65,12 +66,12 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "file",
                 title: "File name",
-                breakpoints: "xs",
+                breakpoints: "sm",
                 sortValue: (val) => ((typeof val === "undefined") ? "" : val)
             }, {
                 name: "ip",
                 title: "IP address",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 style: {
                     "minWidth": "calc(14ch + 8px)",
                     "word-break": "break-all"
@@ -80,7 +81,7 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "sender_mime",
                 title: "[Envelope From] From",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 style: {
                     "minWidth": 100,
                     "maxWidth": 200,
@@ -89,7 +90,7 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "rcpt_mime_short",
                 title: "[Envelope To] To/Cc/Bcc",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 filterable: false,
                 classes: "d-none d-xl-table-cell",
                 style: {
@@ -105,7 +106,7 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "subject",
                 title: "Subject",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 style: {
                     "word-break": "break-all",
                     "minWidth": 150
@@ -117,7 +118,7 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "passthrough_module",
                 title: '<div title="The module that has set the pre-result"><nobr>Pass-through</nobr> module</div>',
-                breakpoints: "xs",
+                breakpoints: "sm",
                 style: {minWidth: 98, maxWidth: 98},
                 sortValue: (val) => ((typeof val === "undefined") ? "" : val)
             }, {
@@ -148,13 +149,13 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "size",
                 title: "Msg size",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 style: {minwidth: 50},
                 formatter: ui.formatBytesIEC
             }, {
                 name: "time_real",
                 title: "Scan time",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 style: {maxWidth: 72},
                 sortValue: function (val) { return Number(val); }
             }, {
@@ -167,7 +168,7 @@ define(["jquery", "app/common", "footable"],
             }, {
                 name: "user",
                 title: "Authenticated user",
-                breakpoints: "xs sm md",
+                breakpoints: "lg",
                 style: {
                     "minWidth": 100,
                     "maxWidth": 130,
@@ -230,13 +231,15 @@ define(["jquery", "app/common", "footable"],
         };
 
         ui.destroyTable = function (table) {
+            $("#" + table + " .ft-columns-btn.show").trigger("click.bs.dropdown"); // Hide dropdown
+            $("#" + table + " .ft-columns-btn").attr("disabled", true);
             if (common.tables[table]) {
                 common.tables[table].destroy();
                 delete common.tables[table];
             }
         };
 
-        ui.initHistoryTable = function (data, items, table, columns, expandFirst, postdrawCallback) {
+        ui.initHistoryTable = function (data, items, table, columnsDefault, expandFirst, postdrawCallback) {
             /* eslint-disable no-underscore-dangle */
             FooTable.Cell.extend("collapse", function () {
                 // call the original method
@@ -246,7 +249,7 @@ define(["jquery", "app/common", "footable"],
             });
             /* eslint-enable no-underscore-dangle */
 
-            /* eslint-disable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
+            /* eslint-disable consistent-this, no-underscore-dangle */
             FooTable.actionFilter = FooTable.Filtering.extend({
                 construct: function (instance) {
                     this._super(instance);
@@ -293,12 +296,15 @@ define(["jquery", "app/common", "footable"],
                     $.each(self.actions, (i, action) => {
                         self.$action.append($("<option/>").text(action));
                     });
+
+                    common.appendButtonsToFtFilterDropdown(self);
                 },
                 _onStatusDropdownChanged: function (e) {
                     const {self} = e.data;
                     const selected = self.$action.val();
                     if (selected !== self.def) {
                         const not = self.$not.is(":checked");
+                        // eslint-disable-next-line no-useless-assignment
                         let query = null;
 
                         if (selected === "reject") {
@@ -312,11 +318,24 @@ define(["jquery", "app/common", "footable"],
                         self.removeFilter("action");
                     }
                     self.filter();
+                },
+                draw: function () {
+                    // Ensure the dropdown reflects the default value when filters are cleared.
+                    this._super();
+                    const actionFilter = this.find("action");
+                    const isActionFilterApplied = actionFilter instanceof FooTable.Filter;
+                    if (this.$action && !isActionFilterApplied) this.$action.val(this.def);
                 }
             });
-            /* eslint-enable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
+            /* eslint-enable consistent-this, no-underscore-dangle */
+
+            const columns = (table in columnsCustom)
+                ? columnsDefault.map((column) => $.extend({}, column, columnsCustom[table][column.name]))
+                : columnsDefault.map((column) => column);
 
             common.tables[table] = FooTable.init("#historyTable_" + table, {
+                breakpoints: common.breakpoints,
+                cascade: true,
                 columns: columns,
                 rows: items,
                 expandFirst: expandFirst,
@@ -348,6 +367,107 @@ define(["jquery", "app/common", "footable"],
                     "postdraw.ft.table": postdrawCallback
                 }
             });
+
+            // Column options dropdown
+            (() => {
+                function updateValue(checked, column, cellIdx) {
+                    const option = ["breakpoints", "visible"][cellIdx];
+                    const value = [(checked) ? "all" : column.breakpoints, !checked][cellIdx];
+
+                    FooTable.get("#historyTable_" + table).columns.get(column.name)[option] = value;
+                    return value;
+                }
+
+                const tbody = $("<tbody/>", {class: "table-group-divider"});
+                $("#" + table + " .ft-columns-dropdown").empty().append(
+                    $("<table/>", {class: "table table-sm table-striped text-center"}).append(
+                        $("<thead/>").append(
+                            $("<tr/>").append(
+                                $("<th/>", {text: "Row", title: "Display column cells in a detail row on all screen widths"}),
+                                $("<th/>", {text: "Hidden", title: "Hide column completely"}),
+                                $("<th/>", {text: "Column name", class: "text-start"})
+                            )
+                        ),
+                        tbody
+                    ),
+                    $("<button/>", {
+                        type: "button",
+                        class: "btn btn-xs btn-secondary float-start",
+                        text: "Reset to default",
+                        click: () => {
+                            columnsDefault.forEach((column, i) => {
+                                const row = tbody[0].rows[i];
+                                [(column.breakpoints === "all"), (column.visible === false)].forEach((checked, cellIdx) => {
+                                    if (row.cells[cellIdx].getElementsByTagName("input")[0].checked !== checked) {
+                                        row.cells[cellIdx].getElementsByTagName("input")[0].checked = checked;
+
+                                        updateValue(checked, column, cellIdx);
+                                        delete columnsCustom[table];
+                                    }
+                                });
+                            });
+                        }
+                    }),
+                    $("<button/>", {
+                        type: "button",
+                        class: "btn btn-xs btn-primary float-end btn-dropdown-apply",
+                        text: "Apply",
+                        title: "Save settings and redraw the table",
+                        click: (e) => {
+                            $(e.target).attr("disabled", true);
+                            FooTable.get("#historyTable_" + table).draw();
+                            localStorage.setItem("columns", JSON.stringify(columnsCustom));
+                        }
+                    })
+                );
+
+                function checkbox(i, column, cellIdx) {
+                    const option = ["breakpoints", "visible"][cellIdx];
+                    return $("<td/>").append($("<input/>", {
+                        "type": "checkbox",
+                        "class": "form-check-input",
+                        "data-table": table,
+                        "data-name": column.name,
+                        "checked": (option === "breakpoints" && column.breakpoints === "all") ||
+                            (option === "visible" && column.visible === false),
+                        "disabled": (option === "breakpoints" && columnsDefault[i].breakpoints === "all")
+                    }).change((e) => {
+                        const value = updateValue(e.target.checked, columnsDefault[i], cellIdx);
+                        if (value == null) { // eslint-disable-line no-eq-null, eqeqeq
+                            delete columnsCustom[table][column.name][option];
+                        } else {
+                            $.extend(true, columnsCustom, {
+                                [table]: {
+                                    [column.name]: {
+                                        [option]: value
+                                    }
+                                }
+                            });
+                        }
+                    }));
+                }
+
+                $.each(columns, (i, column) => {
+                    tbody.append(
+                        $("<tr/>").append(
+                            checkbox(i, column, 0),
+                            checkbox(i, column, 1),
+                            $("<td/>", {
+                                class: "text-start",
+                                text: () => {
+                                    switch (column.name) {
+                                        case "passthrough_module": return "Pass-through module";
+                                        case "symbols": return "Symbols";
+                                        default: return column.title;
+                                    }
+                                }
+                            })
+                        )
+                    );
+                });
+
+                $("#" + table + " .ft-columns-btn").removeAttr("disabled");
+            })();
         };
 
         ui.preprocess_item = function (item) {
@@ -379,9 +499,7 @@ define(["jquery", "app/common", "footable"],
                         });
                         break;
                     default:
-                        if (typeof item[prop] === "string") {
-                            item[prop] = common.escapeHTML(item[prop]);
-                        }
+                        if (typeof item[prop] === "string") item[prop] = common.escapeHTML(item[prop]);
                 }
             }
 
@@ -462,17 +580,15 @@ define(["jquery", "app/common", "footable"],
 
                     ui.preprocess_item(item);
                     Object.values(item.symbols).forEach((sym) => {
-                        sym.str = '<span class="symbol-default ' + get_symbol_class(sym.name, sym.score) + '"><strong>';
-
-                        if (sym.description) {
-                            sym.str += '<abbr title="' + sym.description + '">' + sym.name + "</abbr>";
-                        } else {
-                            sym.str += sym.name;
-                        }
-                        sym.str += "</strong> (" + sym.score + ")</span>";
+                        sym.str = `
+<span class="symbol-default ${get_symbol_class(sym.name, sym.score)} ${sym.description ? "has-description" : ""}" tabindex="0">
+    <strong>${sym.name}</strong>
+    ${sym.description ? `<span class="symbol-description"> • ${sym.description}</span>` : ""}
+    (${sym.score})
+</span>`;
 
                         if (sym.options) {
-                            sym.str += " [" + sym.options.join(",") + "]";
+                            sym.str += ` [${sym.options.join(",")}]`;
                         }
                     });
                     unsorted_symbols.push(item.symbols);
@@ -490,6 +606,7 @@ define(["jquery", "app/common", "footable"],
                     item.id = item["message-id"];
 
                     if (table === "history") {
+                        // eslint-disable-next-line no-useless-assignment
                         let rcpt = {};
                         if (!item.rcpt_mime.length) {
                             rcpt = format_rcpt(true, false);

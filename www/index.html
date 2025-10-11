@@ -28,13 +28,13 @@
 </head>
 
 <body>
-
-<nav class="navbar navbar-light bg-light navbar-expand-xl d-none" id="navBar">
+<!-- .vw-100 and .pe-3 prevent navbar layout shift caused by scrollbar -->
+<nav class="navbar navbar-light bg-light navbar-expand-xl vw-100 pe-3 d-none" id="navBar">
 	<div class="container-fluid">
 		<div class="navbar-header navbar-brand p-0">
 			<img src="./img/rspamd_logo_navbar.png" alt="Rspamd">
 		</div>
-		<div class="collapse navbar-collapse order-3 order-xl-2">
+		<div class="collapse navbar-collapse order-3 order-xl-2 flex-grow-0">
 			<form class="my-2 me-auto">
 				<select id="selSrv" class="form-select"></select>
 			</form>
@@ -57,7 +57,7 @@
 		<div class="d-flex flex-row order-2 order-xl-4">
 			<form class="ms-auto">
 				<div class="btn-group">
-					<button class="btn btn-outline-secondary" id="refresh" style="display: none;"><i class="fas fa-sync-alt"></i> Refresh</button>
+					<button class="btn btn-outline-secondary invisible" id="refresh"><i class="fas fa-sync-alt"></i> Refresh</button>
 					<button class="btn btn-outline-secondary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" id="autoRefresh" title="Auto-refresh time interval">
 						<span id="countdown">--:--</span>
 					</button>
@@ -121,6 +121,16 @@
 									<div class="input-group-sm">
 										<button id="ajax-timeout-restore" class="btn btn-secondary">Restore default</button>
 									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="card mt-1">
+							<div class="card-body">
+								<h6 class="card-title fw-bolder">History rows per load</h6>
+								<div class="input-group input-group-sm was-validated">
+									<input type="number" id="settings-history-count" class="form-control" min="1" step="1" placeholder="1000">
+									<button id="settings-history-count-restore" class="btn btn-secondary">Restore default</button>
 								</div>
 							</div>
 						</div>
@@ -328,7 +338,7 @@
 				<div class="card bg-light shadow my-3">
 					<div class="card-header text-secondary py-2 d-flex align-items-center">
 						<span class="icon me-3"><i class="fas fa-list"></i></span>
-						<span class="h6 fw-bolder my-auto">Lists</span>
+						<span class="h6 fw-bolder my-auto">Maps</span>
 						<div class="input-group-sm ms-auto me-1">
 							Editor:
 							<div id="btnGroupEditor" class="btn-group btn-group-xs ms-1">
@@ -342,6 +352,8 @@
 					</div>
 					<div class="card-body p-0">
 						<table class="table table-sm table-hover mb-0" id="listMaps">
+							<thead><tr><th>Flags</th><th>Type</th><th>URL</th><th>Description</th></tr></thead>
+							<tbody/>
 						</table>
 					</div>
 				</div>
@@ -383,7 +395,7 @@
 						<span class="h6 fw-bolder my-auto">Scan suspected message</span>
 						<div class="d-flex input-group-sm align-items-center ms-auto">
 							<label for="formFile" class="col-auto col-form-label-sm me-1">Choose a file:</label>
-							<input class="form-control form-control-sm btn btn-secondary" id="formFile" type="file">
+							<input class="form-control form-control-sm btn btn-secondary" id="formFile" type="file" multiple>
 						</div>
 					</div>
 					<div class="card-body">
@@ -446,12 +458,13 @@
 					</div>
 					<div class="card-footer d-md-flex justify-content-between py-1">
 						<div class="input-group d-inline-flex w-auto my-1">
-							<button type="submit" class="btn btn-primary d-flex align-items-center" data-upload="scan"><i class="fas fa-search me-2"></i>Scan message</button>
+							<button type="submit" class="btn btn-primary d-flex align-items-center" data-upload="checkv2"><i class="fas fa-search me-2"></i>Scan message</button>
 							<button class="btn btn-secondary d-flex align-items-center" id="scanOptionsToggle" data-bs-toggle="collapse" data-bs-target="#scanOptions"><i class="fas fa-bars me-2"></i>Options</button>
 						</div>
 						<div class="input-group d-inline-flex w-auto my-1">
 							<label for="fuzzy-flag" class="input-group-text">Flag</label>
-							<input id="fuzzy-flag" class="form-control" value="1" min="1" type="number">
+							<select id="fuzzy-flag-picker" class="form-select"></select>
+							<input id="fuzzy-flag" class="form-control flex-grow-0" value="1" min="1" type="number">
 							<button class="btn btn-warning d-flex align-items-center" data-upload="compute-fuzzy"><i class="fas fa-hashtag me-2"></i>Compute fuzzy hashes</button>
 						</div>
 						<div class="float-end my-1">
@@ -472,32 +485,55 @@
 						</div>
 					</div>
 					<div class="card-body">
-						<div class="row">
-							<div class="col-lg-6">
+						<div class="row g-3">
+							<div class="col-lg-auto d-flex">
 								<div class="card bg-light shadow card-body card p-2">
 									<p>Learn Bayesian classifier:</p>
 									<form>
-										<div class="btn-group">
-											<button class="btn btn-success d-flex align-items-center" type="button" data-upload="ham" disabled><i class="fas fa-thumbs-up me-2"></i>Upload HAM</button>
-											<button class="btn btn-danger d-flex align-items-center" type="button" data-upload="spam" disabled><i class="fas fa-thumbs-down me-2"></i>Upload SPAM</button>
+										<div class="d-flex flex-wrap flex-lg-column align-items-start align-items-lg-stretch gap-2">
+											<select id="classifier" class="form-select w-auto"></select>
+											<div class="btn-group">
+												<button class="btn btn-success d-flex align-items-center" type="button" data-upload="learnham" disabled><i class="fas fa-thumbs-up me-2"></i>Upload HAM</button>
+												<button class="btn btn-danger d-flex align-items-center" type="button" data-upload="learnspam" disabled><i class="fas fa-thumbs-down me-2"></i>Upload SPAM</button>
+											</div>
 										</div>
 									</form>
 								</div>
 							</div>
-							<div class="col-lg-6">
-								<div class="card bg-light shadow card-body card p-2">
-									<p>Learn Fuzzy storage:</p>
-									<form class="d-flex">
-										<div class="d-flex align-items-center">
-											<label for="fuzzyFlagText">Flag:</label>
-											<input name="fuzzyFlagText" id="fuzzyFlagText" class="form-control ms-1" type="number" value="1"/>
+							<div class="col-lg d-flex">
+								<div class="card bg-light shadow card-body p-2">
+									<p>Fuzzy hash storage management:</p>
+									<div class="row g-2 align-items-center">
+										<div class="col-auto d-flex align-items-center me-1">
+											<label for="fuzzyFlagText" class="me-1">Flag:</label>
+											<select id="fuzzyFlagText-picker" class="form-select"></select>
+											<input id="fuzzyFlagText" class="form-control" type="number" value="1"/>
 										</div>
-										<div class="d-flex align-items-center ms-2">
-											<label for="fuzzyWeightText">Weight:</label>
-											<input name="fuzzyWeightText" id="fuzzyWeightText" class="form-control ms-1" type="number" value="1"/>
+										<div class="col-auto d-flex align-items-center me-2">
+											<label for="fuzzyWeightText" class="me-1">Weight:</label>
+											<input id="fuzzyWeightText" class="form-control" type="number" value="1"/>
 										</div>
-										<button class="btn btn-warning ms-2 d-flex align-items-center" data-upload="fuzzy" disabled><i class="fas fa-upload me-2"></i>Upload FUZZY</button>
-									</form>
+										<div class="col-auto">
+											<button class="btn btn-warning me-1" data-upload="fuzzyadd" disabled><i class="fas fa-circle-plus me-2"></i>Add to storage</button>
+											<button class="btn btn-danger" data-upload="fuzzydel" disabled><i class="fas fa-trash-can me-2"></i>Delete from storage</button>
+										</div>
+									</div>
+									<div class="row mt-3">
+										<div class="col">
+											<label for="fuzzyDelList" class="form-label">Hashes to delete</label>
+											<textarea class="form-control" id="fuzzyDelList" rows="3" placeholder="Enter one hash per line, or separate with commas, semicolons, or spaces."></textarea>
+										</div>
+									</div>
+									<div class="row mt-2">
+										<div class="col d-flex justify-content-end">
+											<button class="btn btn-danger me-2" id="deleteHashesBtn" disabled>
+												<i class="fas fa-trash-can me-2"></i><span class="btn-label">Delete hashes</span>
+											</button>
+											<button class="btn btn-secondary" id="clearHashesBtn" disabled>
+												<i class="fas fa-eraser me-2"></i>Clear
+											</button>
+										</div>
+									</div>
 								</div>
 							</div>
 						</div>
@@ -508,7 +544,7 @@
 					<div class="card-header text-secondary py-2 d-flex align-items-center">
 						<span class="icon me-3"><i class="fas fa-hashtag"></i></span>
 						<span class="h6 fw-bolder my-auto">Fuzzy hashes</span>
-						<button type="button" class="card-close-btn btn-close float-end" aria-label="Close"></button>
+						<button type="button" class="card-close-btn btn-close ms-auto" aria-label="Close"></button>
 					</div>
 						<div class="card-body p-0 table-responsive">
 							<table class="table status-table table-sm table-bordered text-nowrap mb-0" id="hashTable">
@@ -537,6 +573,10 @@
 								</select>
 							<label for="scan_page_size" class="ms-2">Rows per page:</label>
 							<input id="scan_page_size" class="form-control ms-1" value="25" min="1" type="number">
+							<button class="btn btn-outline-secondary btn-sm ms-2 d-flex align-items-center dropdown-toggle ft-columns-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" disabled>
+								<i class="fas fa-columns me-1"></i>Columns
+							</button>
+							<div class="dropdown-menu ft-columns-dropdown p-2"></div>
 							<button class="btn btn-secondary btn-sm ms-2 d-flex align-items-center" id="cleanScanHistory" disabled>
 								<i class="fas fa-trash-alt me-1"></i>Clean history
 							</button>
@@ -555,6 +595,10 @@
 					<div class="card-header text-secondary py-2 d-flex align-items-center">
 						<span class="icon me-3"><i class="fas fa-envelope"></i></span>
 						<span class="h6 fw-bolder my-auto">Test Rspamd selectors</span>
+						<div class="d-flex input-group-sm align-items-center ms-auto">
+							<label for="formFile" class="col-auto col-form-label-sm me-1">Choose a file:</label>
+							<input class="form-control form-control-sm btn btn-secondary" id="selectorsFile" type="file">
+						</div>
 					</div>
 					<div class="card-body p-0">
 						<div class="row h-100 m-0" id="row-main">
@@ -583,7 +627,7 @@
 													<div class="col">
 														<div class="form-group">
 															<label class="form-label" for="selectorsMsgArea">Message source:</label>
-															<textarea class="form-control" id="selectorsMsgArea" rows="9" placeholder="Paste raw message source"></textarea>
+															<textarea class="form-control" id="selectorsMsgArea" rows="9" placeholder='Paste raw message source, drag and drop files here or use "Browse..." button.'></textarea>
 														</div>
 														<button class="btn btn-secondary d-flex align-items-center float-end" id="selectorsMsgClean"><i class="fas fa-trash-alt me-2"></i>Clean form</button>
 													</div>
@@ -647,8 +691,17 @@
 								<option value="score">Score value</option>
 								<option value="name">Name</option>
 							</select>
-							<label for="history_page_size" class="ms-2">Rows per page:</label>
+							<label for="history-from" class="ms-3" title="Start from this row number">Offset:</label>
+							<input type="number" id="history-from" class="form-control ms-1" value="0" min="0" step="1" title="Start from this row number">
+							<label for="history-count" class="ms-2" title="Number of rows to load">Count:</label>
+							<input type="number" id="history-count" class="form-control ms-1" value="1000" min="1" step="1" title="Number of rows to load">
+							<label for="history_page_size" class="ms-2">Rows/page:</label>
 							<input id="history_page_size" class="form-control ms-1" value="25" min="1" type="number">
+							<button class="btn btn-outline-secondary btn-sm ms-3 d-flex align-items-center dropdown-toggle ft-columns-btn" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" disabled>
+								<i class="fas fa-columns me-1"></i>Columns
+							</button>
+							<div class="dropdown-menu ft-columns-dropdown p-2"></div>
+
 							<button class="btn btn-danger btn-sm ms-2 d-flex align-items-center ro-hide" id="resetHistory">
 								<i class="fas fa-times-circle me-1"></i>Reset
 							</button>

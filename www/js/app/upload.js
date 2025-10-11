@@ -28,25 +28,15 @@ define(["jquery", "app/common", "app/libft"],
     ($, common, libft) => {
         "use strict";
         const ui = {};
-        let files = null;
-        let filesIdx = null;
+        const fileSet = {files: null, index: null};
+        const lastReqContext = {
+            classifiers: {config_id: null, server: null},
+            storages: {config_id: null, server: null}
+        };
         let scanTextHeaders = {};
 
-        function cleanTextUpload(source) {
-            $("#" + source + "TextSource").val("");
-        }
-
-        function uploadText(data, source, headers) {
-            let url = null;
-            if (source === "spam") {
-                url = "learnspam";
-            } else if (source === "ham") {
-                url = "learnham";
-            } else if (source === "fuzzy") {
-                url = "fuzzyadd";
-            } else if (source === "scan") {
-                url = "checkv2";
-            }
+        function uploadText(data, url, headers, method = "POST") {
+            const deferred = new $.Deferred();
 
             function server() {
                 if (common.getSelector("selSrv") === "All SERVERS" &&
@@ -62,34 +52,25 @@ define(["jquery", "app/common", "app/libft"],
                 params: {
                     processData: false,
                 },
-                method: "POST",
+                method: method,
                 headers: headers,
                 success: function (json, jqXHR) {
-                    cleanTextUpload(source);
                     common.alertMessage("alert-success", "Data successfully uploaded");
                     if (jqXHR.status !== 200) {
                         common.alertMessage("alert-info", jqXHR.statusText);
                     }
+                    deferred.resolve();
                 },
+                complete: () => deferred.resolve(),
                 server: server()
             });
+
+            return deferred.promise();
         }
 
         function enable_disable_scan_btn(disable) {
-            $("#scan button:not(#cleanScanHistory, #scanOptionsToggle)")
-                .prop("disabled", (disable || $.trim($("textarea").val()).length === 0));
-        }
-
-        function setFileInputFiles(i) {
-            const dt = new DataTransfer();
-            if (arguments.length) dt.items.add(files[i]);
-            $("#formFile").prop("files", dt.files);
-        }
-
-        function readFile(callback, i) {
-            const reader = new FileReader();
-            reader.readAsText(files[(arguments.length === 1) ? 0 : i]);
-            reader.onload = () => callback(reader.result);
+            $("#scan button:not(#cleanScanHistory, #deleteHashesBtn, #scanOptionsToggle, .ft-columns-btn)")
+                .prop("disabled", (disable || $.trim($("#scanMsgSource").val()).length === 0));
         }
 
         function scanText(data) {
@@ -110,7 +91,7 @@ define(["jquery", "app/common", "app/libft"],
                         const {items} = o;
                         common.symbols.scan.push(o.symbols[0]);
 
-                        if (files) items[0].file = files[filesIdx].name;
+                        if (fileSet.files) items[0].file = fileSet.files[fileSet.index].name;
 
                         if (Object.prototype.hasOwnProperty.call(common.tables, "scan")) {
                             common.tables.scan.rows.load(items, true);
@@ -118,17 +99,20 @@ define(["jquery", "app/common", "app/libft"],
                             require(["footable"], () => {
                                 libft.initHistoryTable(data, items, "scan", libft.columns_v2("scan"), true,
                                     () => {
-                                        if (files && filesIdx < files.length - 1) {
-                                            readFile((result) => {
-                                                if (filesIdx === files.length - 1) {
+                                        const {files} = fileSet;
+                                        if (files && fileSet.index < files.length - 1) {
+                                            common.fileUtils.readFile(files, (result) => {
+                                                const {index} = fileSet;
+                                                if (index === files.length - 1) {
                                                     $("#scanMsgSource").val(result);
-                                                    setFileInputFiles(filesIdx);
+                                                    common.fileUtils.setFileInputFiles("#formFile", files, index);
                                                 }
                                                 scanText(result);
-                                            }, ++filesIdx);
+                                            }, ++fileSet.index);
                                         } else {
                                             enable_disable_scan_btn();
-                                            $("#cleanScanHistory").removeAttr("disabled");
+                                            $("#cleanScanHistory, #scan .ft-columns-dropdown .btn-dropdown-apply")
+                                                .removeAttr("disabled");
                                             $("html, body").animate({
                                                 scrollTop: $("#scanResult").offset().top
                                             }, 1000);
@@ -205,13 +189,6 @@ define(["jquery", "app/common", "app/libft"],
         });
 
         enable_disable_scan_btn();
-        $("textarea").on("input", () => {
-            enable_disable_scan_btn();
-            if (files) {
-                files = null;
-                setFileInputFiles();
-            }
-        });
 
         $("#scanClean").on("click", () => {
             enable_disable_scan_btn(true);
@@ -237,17 +214,24 @@ define(["jquery", "app/common", "app/libft"],
             const source = $(this).data("upload");
             const data = $("#scanMsgSource").val();
             if ($.trim(data).length > 0) {
-                if (source === "scan") {
+                if (source === "checkv2") {
                     getScanTextHeaders();
                     scanText(data);
                 } else if (source === "compute-fuzzy") {
                     getFuzzyHashes(data);
                 } else {
                     let headers = {};
-                    if (source === "fuzzy") {
+                    if (source === "learnham" || source === "learnspam") {
+                        const classifier = $("#classifier").val();
+                        if (classifier) headers = {classifier: classifier};
+                    } else if (source === "fuzzyadd") {
                         headers = {
                             flag: $("#fuzzyFlagText").val(),
                             weight: $("#fuzzyWeightText").val()
+                        };
+                    } else if (source === "fuzzydel") {
+                        headers = {
+                            flag: $("#fuzzyFlagText").val(),
                         };
                     }
                     uploadText(data, source, headers);
@@ -258,35 +242,190 @@ define(["jquery", "app/common", "app/libft"],
             return false;
         });
 
-        const dragoverClassList = "outline-dashed-primary bg-primary-subtle";
-        $("#scanMsgSource")
-            .on("dragenter dragover dragleave drop", (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-            })
-            .on("dragenter dragover", () => {
-                $("#scanMsgSource").addClass(dragoverClassList);
-            })
-            .on("dragleave drop", () => {
-                $("#scanMsgSource").removeClass(dragoverClassList);
-            })
-            .on("drop", (e) => {
-                ({files} = e.originalEvent.dataTransfer);
-                filesIdx = 0;
 
-                if (files.length === 1) {
-                    setFileInputFiles(0);
-                    enable_disable_scan_btn();
-                    readFile((result) => {
-                        $("#scanMsgSource").val(result);
-                        enable_disable_scan_btn();
-                    });
-                // eslint-disable-next-line no-alert
-                } else if (files.length < 10 || confirm("Are you sure you want to scan " + files.length + " files?")) {
-                    getScanTextHeaders();
-                    readFile((result) => scanText(result));
-                }
+        function setDelhashButtonsDisabled(disabled = true) {
+            ["#deleteHashesBtn", "#clearHashesBtn"].forEach((s) => $(s).prop("disabled", disabled));
+        }
+
+        /**
+         * Parse a textarea (or any input) value into an array of non-empty tokens.
+         * Splits on commas, semicolons or any whitespace (space, tab, newline).
+         *
+         * @param {string} selector - jQuery selector for the input element.
+         * @returns {string[]} - Trimmed, non-empty tokens.
+         */
+        function parseHashes(selector) {
+            return $(selector).val()
+                .split(/[,\s;]+/)
+                .map((t) => t.trim())
+                .filter((t) => t.length > 0);
+        }
+
+        $("#fuzzyDelList").on("input", () => {
+            const hasTokens = parseHashes("#fuzzyDelList").length > 0;
+            setDelhashButtonsDisabled(!hasTokens);
+        });
+
+        $("#deleteHashesBtn").on("click", () => {
+            $("#fuzzyDelList").prop("disabled", true);
+            setDelhashButtonsDisabled();
+            $("#deleteHashesBtn").find(".btn-label").text("Deleting…");
+
+            const hashes = parseHashes("#fuzzyDelList");
+            const promises = hashes.map((h) => {
+                const headers = {
+                    flag: $("#fuzzyFlagText").val(),
+                    Hash: h
+                };
+                return uploadText(null, "fuzzydelhash", headers, "GET");
             });
+
+            $.when.apply($, promises).always(() => {
+                $("#fuzzyDelList").prop("disabled", false);
+                setDelhashButtonsDisabled(false);
+                $("#deleteHashesBtn").find(".btn-label").text("Delete hashes");
+            });
+        });
+
+        $("#clearHashesBtn").on("click", () => {
+            $("#fuzzyDelList").val("").focus();
+            setDelhashButtonsDisabled();
+        });
+
+
+        function multiple_files_cb(files) {
+            // eslint-disable-next-line no-alert
+            if (files.length < 10 || confirm("Are you sure you want to scan " + files.length + " files?")) {
+                getScanTextHeaders();
+                common.fileUtils.readFile(files, (result) => scanText(result));
+            }
+        }
+
+        common.fileUtils.setupFileHandling("#scanMsgSource", "#formFile", fileSet, enable_disable_scan_btn, multiple_files_cb);
+
+
+        /**
+         * Returns `true` if we should skip the request as configuration is not changed,
+         * otherwise bumps the request context cache and returns `false`.
+         *
+         * @param {string} server
+         *   Name of the currently selected Rspamd neighbour.
+         * @param {"classifiers"|"storages"} key
+         *   Which endpoint’s cache to check.
+         * @returns {boolean}
+         */
+        function shouldSkipRequest(server, key) {
+            const servers = JSON.parse(sessionStorage.getItem("Credentials") || "{}");
+            const config_id = servers[server]?.data?.config_id;
+            const last = lastReqContext[key];
+
+            if ((config_id && config_id === last.config_id) ||
+                (!config_id && server === last.server)) {
+                return true;
+            }
+
+            lastReqContext[key] = {config_id, server};
+            return false;
+        }
+
+        ui.getClassifiers = function () {
+            const server = common.getServer();
+            if (shouldSkipRequest(server, "classifiers")) return;
+
+            if (!common.read_only) {
+                const sel = $("#classifier").empty().append($("<option>", {value: "", text: "All classifiers"}));
+                common.query("bayes/classifiers", {
+                    success: function (data) {
+                        data[0].data.forEach((c) => sel.append($("<option>", {value: c, text: c})));
+                    },
+                    server: server
+                });
+            }
+        };
+
+
+        const fuzzyWidgets = [
+            {
+                picker: "#fuzzy-flag-picker",
+                input: "#fuzzy-flag",
+                container: ($picker) => $picker.parent()
+            },
+            {
+                picker: "#fuzzyFlagText-picker",
+                input: "#fuzzyFlagText",
+                container: ($picker) => $picker.closest("div.card")
+            }
+        ];
+
+        function toggleWidgets(showPicker, showInput) {
+            fuzzyWidgets.forEach(({picker, input}) => {
+                $(picker)[showPicker ? "show" : "hide"]();
+                $(input)[showInput ? "show" : "hide"]();
+            });
+        }
+
+        function setWidgetsDisabled(disable) {
+            fuzzyWidgets.forEach(({picker, container}) => {
+                container($(picker))[disable ? "addClass" : "removeClass"]("disabled");
+            });
+        }
+
+        ui.getFuzzyStorages = function () {
+            const server = common.getServer();
+            if (shouldSkipRequest(server, "storages")) return;
+
+            fuzzyWidgets.forEach(({picker, container}) => container($(picker)).removeAttr("title"));
+
+            common.query("plugins/fuzzy/storages", {
+                success: function (data) {
+                    const storages = data[0].data.storages || {};
+                    const hasWritableStorages = Object.keys(storages).some((name) => !storages[name].read_only);
+
+                    toggleWidgets(true, false);
+                    setWidgetsDisabled(!hasWritableStorages);
+
+                    fuzzyWidgets.forEach(({picker, input}) => {
+                        const $sel = $(picker);
+
+                        $sel.empty();
+
+                        if (hasWritableStorages) {
+                            Object.entries(storages).forEach(([name, info]) => {
+                                if (!info.read_only) {
+                                    Object.entries(info.flags).forEach(([symbol, val]) => {
+                                        $sel.append($("<option>", {value: val, text: `${name}:${symbol} (${val})`}));
+                                    });
+                                }
+                            });
+                            $(input).val($sel.val());
+                            $sel.off("change").on("change", () => $(input).val($sel.val()));
+                        } else {
+                            $sel.append($("<option>", {value: "", text: "No writable storages"}));
+                        }
+                    });
+                },
+                error: function (_result, _jqXHR, _textStatus, errorThrown) {
+                    if (errorThrown === "fuzzy_check is not enabled") {
+                        toggleWidgets(true, false);
+                        setWidgetsDisabled(true);
+
+                        fuzzyWidgets.forEach(({picker, container}) => {
+                            const $picker = $(picker);
+                            $picker
+                                .empty()
+                                .append($("<option>", {value: "", text: "fuzzy_check disabled"}))
+                                .show();
+                            container($picker)
+                                .attr("title", "fuzzy_check module is not enabled in server configuration.");
+                        });
+                    } else {
+                        toggleWidgets(false, true);
+                        setWidgetsDisabled(false);
+                    }
+                },
+                server: server
+            });
+        };
 
         return ui;
     });

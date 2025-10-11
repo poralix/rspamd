@@ -130,11 +130,12 @@ define(["jquery", "app/common", "footable"],
                     const [{data}] = json;
                     const items = process_symbols_data(data);
 
-                    /* eslint-disable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
+                    /* eslint-disable consistent-this, no-underscore-dangle */
                     FooTable.groupFilter = FooTable.Filtering.extend({
                         construct: function (instance) {
                             this._super(instance);
                             [,this.groups] = items;
+                            this.groups.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
                             this.def = "Any group";
                             this.$group = null;
                         },
@@ -160,6 +161,8 @@ define(["jquery", "app/common", "footable"],
                             $.each(self.groups, (i, group) => {
                                 self.$group.append($("<option/>").text(group));
                             });
+
+                            common.appendButtonsToFtFilterDropdown(self);
                         },
                         _onStatusDropdownChanged: function (e) {
                             const {self} = e.data;
@@ -181,19 +184,24 @@ define(["jquery", "app/common", "footable"],
                             }
                         }
                     });
-                    /* eslint-enable consistent-this, no-underscore-dangle, one-var-declaration-per-line */
+                    /* eslint-enable consistent-this, no-underscore-dangle */
 
                     common.tables.symbols = FooTable.init("#symbolsTable", {
+                        breakpoints: common.breakpoints,
+                        cascade: true,
                         columns: [
                             {sorted: true, direction: "ASC", name: "group", title: "Group"},
                             {name: "symbol", title: "Symbol"},
-                            {name: "description", title: "Description", breakpoints: "xs sm"},
+                            {name: "description", title: "Description", breakpoints: "md"},
                             {name: "weight", title: "Score"},
                             {name: "frequency",
                                 title: "Frequency",
-                                breakpoints: "xs sm",
+                                breakpoints: "md",
                                 sortValue: function (value) { return Number(value).toFixed(2); }},
-                            {name: "time", title: "Avg. time", breakpoints: "xs sm"},
+                            {name: "time",
+                                title: "Avg. time",
+                                breakpoints: "md",
+                                sortValue: function (value) { return parseFloat(value); }},
                         ],
                         rows: items[0],
                         paging: {

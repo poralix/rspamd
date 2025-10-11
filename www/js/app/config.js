@@ -115,24 +115,28 @@ define(["jquery", "app/common"],
             common.query("maps", {
                 success: function (json) {
                     const [{data}] = json;
-                    $listmaps.empty();
-                    $("#modalBody").empty();
-                    const $tbody = $("<tbody>");
+                    const $tbody = $listmaps.children("tbody").empty();
 
                     $.each(data, (i, item) => {
-                        let $td = '<td><span class="badge text-bg-secondary">Read</span></td>';
-                        if (!(item.editable === false || common.read_only)) {
-                            $td = $($td).append('&nbsp;<span class="badge text-bg-success">Write</span>');
-                        }
-                        const $tr = $("<tr>").append($td);
+                        const $td = $("<td>");
 
-                        const $span = $('<span class="map-link" data-bs-toggle="modal" data-bs-target="#modalDialog">' +
-                            item.uri + "</span>").data("item", item);
+                        const badges = [
+                            {text: "Not loaded", cls: "text-bg-warning", cond: !item.loaded},
+                            {text: "Cached", cls: "text-bg-info", cond: item.cached},
+                            {text: "Writable", cls: "text-bg-success", cond: !(item.editable === false || common.read_only)}
+                        ];
+                        badges.forEach((b) => {
+                            if (b.cond) $td.append($(`<span class="badge me-1 ${b.cls}">${b.text}</span>`));
+                        });
+
+                        const $tr = $("<tr>").append($td).append($("<td>" + item.type + "</td>"));
+                        if (!item.loaded) $tr.addClass("table-light opacity-50");
+
+                        const $span = $('<span class="map-link">' + item.uri + "</span>").data("item", item);
                         $span.wrap("<td>").parent().appendTo($tr);
                         $("<td>" + item.description + "</td>").appendTo($tr);
                         $tr.appendTo($tbody);
                     });
-                    $tbody.appendTo($listmaps);
                     $listmaps.closest(".card").show();
                 },
                 server: common.getServer()
@@ -157,7 +161,7 @@ define(["jquery", "app/common"],
         let mode = "advanced";
 
         // Modal form for maps
-        $(document).on("click", "[data-bs-toggle=\"modal\"]", function () {
+        $(document).on("click", ".map-link", function () {
             const item = $(this).data("item");
             common.query("getmap", {
                 headers: {
@@ -167,6 +171,7 @@ define(["jquery", "app/common"],
                     // Highlighting a large amount of text is unresponsive
                     mode = (new Blob([data[0].data]).size > 5120) ? "basic" : $("input[name=editorMode]:checked").val();
 
+                    $("#modalBody").empty();
                     $("<" + editor[mode].elt + ' id="editor" class="' + editor[mode].class + '" data-id="' + item.map +
                         '"></' + editor[mode].elt + ">").appendTo("#modalBody");
 
@@ -182,7 +187,7 @@ define(["jquery", "app/common"],
                         document.querySelector("#editor").innerHTML = common.escapeHTML(data[0].data);
                     }
 
-                    let icon = "fa-edit";
+                    let icon = "fa-pen-to-square";
                     if (item.editable === false || common.read_only) {
                         $("#editor").attr(editor[mode].readonly_attr);
                         icon = "fa-eye";
@@ -198,10 +203,9 @@ define(["jquery", "app/common"],
                 errorMessage: "Cannot receive maps data",
                 server: common.getServer()
             });
-            return false;
         });
         $("#modalDialog").on("hidden.bs.modal", () => {
-            if (editor[mode].codejar) {
+            if (editor[mode].codejar && jar && typeof jar.destroy === "function") {
                 jar.destroy();
                 $(".codejar-wrap").remove();
             } else {

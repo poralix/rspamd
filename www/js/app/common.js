@@ -4,6 +4,14 @@ define(["jquery", "nprogress"],
     ($, NProgress) => {
         "use strict";
         const ui = {
+            breakpoints: {
+                xs: 0,
+                sm: 576,
+                md: 768,
+                lg: 992,
+                xl: 1200,
+                xxl: 1400
+            },
             chartLegend: [
                 {label: "reject", color: "#FF0000"},
                 {label: "soft reject", color: "#BF8040"},
@@ -49,6 +57,20 @@ define(["jquery", "nprogress"],
             }, 5000);
         }
 
+        /**
+         * Perform a request to a single Rspamd neighbour server.
+         *
+         * @param {Array.<Object>} neighbours_status
+         *   Array of neighbour status objects.
+         * @param {number} ind
+         *   Index of this neighbour in the `neighbours_status` array.
+         * @param {string} req_url
+         *   Relative controller endpoint with optional query string.
+         * @param {Object} o
+         *   The same `options` object passed into `ui.query`.
+         *
+         * @returns {void}
+         */
         function queryServer(neighbours_status, ind, req_url, o) {
             neighbours_status[ind].checked = false;
             neighbours_status[ind].data = {};
@@ -144,23 +166,51 @@ define(["jquery", "nprogress"],
         };
 
         /**
-         * @param {string} url - A string containing the URL to which the request is sent
-         * @param {Object} [options] - A set of key/value pairs that configure the Ajax request. All settings are optional.
+         * Perform an HTTP request to one or all Rspamd neighbours.
          *
-         * @param {Function} [options.complete] - A function to be called when the requests to all neighbours complete.
-         * @param {Object|string|Array} [options.data] - Data to be sent to the server.
-         * @param {Function} [options.error] - A function to be called if the request fails.
-         * @param {string} [options.errorMessage] - Text to display in the alert message if the request fails.
-         * @param {string} [options.errorOnceId] - A prefix of the alert ID to be added to the session storage. If the
-         *     parameter is set, the error for each server will be displayed only once per session.
-         * @param {Object} [options.headers] - An object of additional header key/value pairs to send along with requests
-         *     using the XMLHttpRequest transport.
-         * @param {string} [options.method] - The HTTP method to use for the request.
-         * @param {Object} [options.params] - An object of additional jQuery.ajax() settings key/value pairs.
-         * @param {string} [options.server] - A server to which send the request.
-         * @param {Function} [options.success] - A function to be called if the request succeeds.
+         * @param {string} url
+         *   Relative URL, including with optional query string (e.g. "plugins/selectors/check_selector?selector=from").
+         * @param {Object} [options]
+         *   Ajax request configuration options.
+         * @param {Object|string|Array} [options.data]
+         *   Request body for POST endpoints.
+         * @param {Object} [options.headers]
+         *   Additional HTTP headers.
+         * @param {"GET"|"POST"} [options.method]
+         *   HTTP method (defaults to "GET").
+         * @param {string} [options.server]
+         *   Name or base-URL of the target server (defaults to the currently selected Rspamd neighbour).
+         * @param {Object} [options.params]
+         *   Extra jQuery.ajax() settings (e.g. timeout, dataType).
+         * @param {string} [options.errorMessage]
+         *   Text to show inside a Bootstrap alert on generic errors (e.g. network failure).
+         * @param {string} [options.errorOnceId]
+         *   Prefix for an alert ID stored in session storage to ensure
+         *   `errorMessage` is shown only once per server each session.
+         * @param {function(Array.<Object>, Object)} [options.success]
+         *   Called on HTTP success. Receives:
+         *     1. results: Array of per-server status objects:
+         *        {
+         *          name: string,
+         *          host: string,
+         *          url: string,           // full URL base for this neighbour
+         *          checked: boolean,      // whether this server was attempted
+         *          status: boolean,       // HTTP success (<400)
+         *          data: any,             // parsed JSON or raw text
+         *          percentComplete: number
+         *        }
+         *     2. jqXHR: jQuery XHR object with properties
+         *        { readyState, status, statusText, responseText, responseJSON, … }
+         * @param {function(Object, Object, string, string)} [options.error]
+         *   Called on HTTP error or network failure. Receives:
+         *     1. result: a per-server status object (status:false, data:{}).
+         *     2. jqXHR: jQuery XHR object (responseText, responseJSON, status, statusText).
+         *     3. textStatus: string describing error type ("error", "timeout", etc.).
+         *     4. errorThrown: exception message or HTTP statusText.
+         * @param {function()} [options.complete]
+         *   Called once all servers have been tried; takes no arguments.
          *
-         * @returns {undefined}
+         * @returns {void}
          */
         ui.query = function (url, options) {
             // Force options to be an object
@@ -232,6 +282,83 @@ define(["jquery", "nprogress"],
                 "=": "&#x3D;"
             };
             return String(string).replace(htmlEscaper, (match) => htmlEscapes[match]);
+        };
+
+        ui.appendButtonsToFtFilterDropdown = (ftFilter) => {
+            function button(text, classes, check) {
+                return $("<button/>", {
+                    type: "button",
+                    class: "btn btn-xs " + classes,
+                    text: text,
+                    click: () => {
+                        const checkboxes = ftFilter.$dropdown.find(".checkbox input");
+                        return (check) ? checkboxes.attr("checked", "checked") : checkboxes.removeAttr("checked");
+                    }
+                });
+            }
+
+            $("<div/>", {class: "d-flex justify-content-between footable-dropdown-btn-group"}).append(
+                button("Check all", "btn-secondary", true),
+                button("Uncheck all", "btn-outline-secondary ms-1")
+            ).appendTo(ftFilter.$dropdown);
+        };
+
+        ui.fileUtils = {
+            readFile(files, callback, index = 0) {
+                const file = files[index];
+                const reader = new FileReader();
+                reader.onerror = () => alertMessage("alert-error", `Error reading file: ${file.name}`);
+                reader.onloadend = () => callback(reader.result);
+                reader.readAsText(file);
+            },
+
+            setFileInputFiles(fileInput, files, i) {
+                const dt = new DataTransfer();
+                if (arguments.length > 2) dt.items.add(files[i]);
+                $(fileInput).prop("files", dt.files);
+            },
+
+            setupFileHandling(textArea, fileInput, fileSet, enable_btn_cb, multiple_files_cb) {
+                const dragoverClassList = "outline-dashed-primary bg-primary-subtle";
+                const {readFile, setFileInputFiles} = ui.fileUtils;
+
+                function handleFileInput(fileSource) {
+                    fileSet.files = fileSource.files;
+                    fileSet.index = 0;
+                    const {files} = fileSet;
+
+                    if (files.length === 1) {
+                        setFileInputFiles(fileInput, files, 0);
+                        enable_btn_cb();
+                        readFile(files, (result) => {
+                            $(textArea).val(result);
+                            enable_btn_cb();
+                        });
+                    } else if (multiple_files_cb) {
+                        multiple_files_cb(files);
+                    } else {
+                        alertMessage("alert-warning", "Multiple files processing is not supported.");
+                    }
+                }
+
+                $(textArea)
+                    .on("dragenter dragover dragleave drop", (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    })
+                    .on("dragenter dragover", () => $(textArea).addClass(dragoverClassList))
+                    .on("dragleave drop", () => $(textArea).removeClass(dragoverClassList))
+                    .on("drop", (e) => handleFileInput(e.originalEvent.dataTransfer))
+                    .on("input", () => {
+                        enable_btn_cb();
+                        if (fileSet.files) {
+                            fileSet.files = null;
+                            setFileInputFiles(fileInput, fileSet.files);
+                        }
+                    });
+
+                $(fileInput).on("change", (e) => handleFileInput(e.target));
+            }
         };
 
         return ui;

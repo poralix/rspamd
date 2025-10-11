@@ -95,6 +95,15 @@ fieldset[disabled] .btn {
     pointer-events: auto;
     cursor: not-allowed;
 }
+.card.disabled,
+.input-group.disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+.card.disabled *,
+.input-group.disabled * {
+    pointer-events: none;
+}
 .w-1 {
     width: 1%;
 }
@@ -136,8 +145,8 @@ textarea {
     height: 50px;
 }
 .btn-group > .btn.radius-right {
-    border-top-right-radius: .25rem !important;
-    border-bottom-right-radius: .25rem !important;
+    border-top-right-radius: var(--bs-btn-border-radius) !important;
+    border-bottom-right-radius: var(--bs-btn-border-radius) !important;
 }
 
 input.form-control[type="number"] {
@@ -265,6 +274,19 @@ table#symbolsTable input[type="number"] {
     background-color: #cddbff;
 }
 
+/* For symbol description display on hover/focus */
+.symbol-default.has-description:not(:focus) strong {
+    text-decoration: underline dotted;
+}
+.symbol-description {
+    display: none;
+    color: #484848;
+}
+.symbol-default:hover .symbol-description,
+.symbol-default:focus .symbol-description {
+    display: unset;
+}
+
 .map-link {
     display: block;
     color: #0088cc;
@@ -311,9 +333,13 @@ table#symbolsTable input[type="number"] {
 .footable tr:not(.footable-detail-row) > td {
     font-size: 11px;
 }
+.footable-dropdown-btn-group {
+    padding: 0 20px;
+    margin: 7px 0;
+}
 
 .status-table tr:last-child td:last-child {
-    border-radius: 0 0 calc(var(--bs-border-radius) + 1px) 0;
+    border-radius: 0 0 calc(var(--bs-border-radius) + 1px);
 }
 .status-table :not(:has([rowspan])) tr:last-child td:first-child,
 .status-table :nth-last-child(1 of tr:has([rowspan])) td:first-child  {
@@ -394,18 +420,33 @@ table#symbolsTable input[type="number"] {
     display: none;
 }
 
+#history-from,
+#history-count,
 #history_page_size {
-    width: 6em !important;
+    width: 6em;
     text-align: center;
 }
 
 .outline-dashed-primary { outline: 2px dashed var(--bs-primary); }
 
+#scanMsgSource:placeholder-shown,
+#selectorsMsgArea:placeholder-shown {
+  background-image: url("../img/drop-area.svg");
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.8;
+}
+
+#scanMsgSource:not(:placeholder-shown),
+#selectorsMsgArea:not(:placeholder-shown) {
+  background-image: none;
+}
+
 .scorebar-spam {
-    background-color: rgba(240 0 0 / 0.1) !important;
+    background-color: rgb(240 0 0 / 0.1) !important;
 }
 .scorebar-ham {
-    background: rgba(100 230 80 / 0.1) !important;
+    background: rgb(100 230 80 / 0.1) !important;
 }
 
 .danger .icon {
@@ -563,10 +604,10 @@ table#symbolsTable input[type="number"] {
     bottom: unset;
 }
 .codejar-linenumbers {
-    background: rgba(255 255 255 / 0.07) !important;
+    background: rgb(255 255 255 / 0.07) !important;
 }
 .codejar-linenumber {
-    color: rgba(120 120 120 / 1) !important;
+    color: rgb(120 120 120 / 1) !important;
     text-align: right;
 }
 .editor {

@@ -52,7 +52,7 @@ define(["jquery", "app/common", "stickytabs", "visibility",
     function cleanCredentials() {
         sessionStorage.clear();
         $("#statWidgets").empty();
-        $("#listMaps").empty();
+        $("#listMaps").children("tbody").empty();
         $("#modalBody").empty();
     }
 
@@ -92,7 +92,7 @@ define(["jquery", "app/common", "stickytabs", "visibility",
             tab_id = "#" + $(".nav-link.active").attr("id");
         }
 
-        $("#autoRefresh").hide();
+        $("#autoRefresh").addClass("invisible");
         $("#refresh").addClass("radius-right");
 
         function setAutoRefresh(refreshInterval, timer, callback) {
@@ -113,7 +113,7 @@ define(["jquery", "app/common", "stickytabs", "visibility",
             }
 
             $("#refresh").removeClass("radius-right");
-            $("#autoRefresh").show();
+            $("#autoRefresh").removeClass("invisible");
 
             countdown(refreshInterval);
             if (!refreshInterval) return;
@@ -126,9 +126,9 @@ define(["jquery", "app/common", "stickytabs", "visibility",
         }
 
         if (["#scan_nav", "#selectors_nav", "#disconnect"].indexOf(tab_id) !== -1) {
-            $("#refresh").hide();
+            $("#refresh").addClass("invisible");
         } else {
-            $("#refresh").show();
+            $("#refresh").removeClass("invisible");
         }
 
         switch (tab_id) {
@@ -176,7 +176,10 @@ define(["jquery", "app/common", "stickytabs", "visibility",
                 require(["app/symbols"], (module) => module.getSymbols());
                 break;
             case "#scan_nav":
-                require(["app/upload"]);
+                require(["app/upload"], (module) => {
+                    module.getClassifiers();
+                    module.getFuzzyStorages();
+                });
                 break;
             case "#selectors_nav":
                 require(["app/selectors"], (module) => module.displayUI());
@@ -195,6 +198,8 @@ define(["jquery", "app/common", "stickytabs", "visibility",
                     $(".preset").hide();
                     $(".history").show();
                     $(".dynamic").hide();
+
+                    module.updateHistoryControlsState();
                 });
                 break;
             case "#disconnect":
@@ -235,6 +240,8 @@ define(["jquery", "app/common", "stickytabs", "visibility",
             },
             complete: function () {
                 ajaxSetup(localStorage.getItem("ajax_timeout"));
+
+                if (require.defined("app/upload")) require(["app/upload"], (module) => module.getClassifiers());
 
                 if (common.read_only) {
                     $(".ro-disable").attr("disabled", true);
@@ -343,6 +350,8 @@ define(["jquery", "app/common", "stickytabs", "visibility",
         let selected_locale = null;
         let custom_locale = null;
         const localeTextbox = ".popover #settings-popover #locale";
+        const historyCountDef = 1000;
+        const historyCountSelector = ".popover #settings-popover #settings-history-count";
 
         function validateLocale(saveToLocalStorage) {
             function toggle_form_group_class(remove, add) {
@@ -401,6 +410,8 @@ define(["jquery", "app/common", "stickytabs", "visibility",
             $(localeTextbox).val(custom_locale);
 
             ajaxSetup(localStorage.getItem("ajax_timeout"), true);
+
+            $(historyCountSelector).val(parseInt(localStorage.getItem("historyCount"), 10) || historyCountDef);
         });
         $(document).on("change", '.popover #settings-popover input:radio[name="locale"]', function () {
             selected_locale = this.value;
@@ -416,6 +427,21 @@ define(["jquery", "app/common", "stickytabs", "visibility",
         });
         $(document).on("click", ".popover #settings-popover #ajax-timeout-restore", () => {
             ajaxSetup(null, true, true);
+        });
+
+        $(document).on("input", historyCountSelector, (e) => {
+            const v = parseInt($(e.currentTarget).val(), 10);
+            if (v > 0) {
+                localStorage.setItem("historyCount", v);
+                $(e.currentTarget).removeClass("is-invalid");
+                $("#history-count").val(v).trigger("change");
+            } else {
+                $(e.currentTarget).addClass("is-invalid");
+            }
+        });
+        $(document).on("click", ".popover #settings-popover #settings-history-count-restore", () => {
+            localStorage.removeItem("historyCount");
+            $(historyCountSelector).val(historyCountDef);
         });
 
         // Dismiss Bootstrap popover by clicking outside
