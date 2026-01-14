@@ -1,25 +1,5 @@
 /*
- The MIT License (MIT)
-
- Copyright (C) 2017 Vsevolod Stakhov <vsevolod@highsecure.ru>
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
+ * Copyright (C) 2017 Vsevolod Stakhov <vsevolod@highsecure.ru>
  */
 
 /* global require */
@@ -121,20 +101,26 @@ define(["jquery", "app/common", "app/libft"],
                             });
                         }
                     } else {
-                        common.alertMessage("alert-error", "Cannot scan data");
+                        common.alertMessage("alert-danger", "Cannot scan data");
                     }
                 },
                 error: enable_disable_scan_btn,
                 errorMessage: "Cannot upload data",
                 statusCode: {
                     404: function () {
-                        common.alertMessage("alert-error", "Cannot upload data, no server found");
+                        common.logError({
+                            server: common.getServer(),
+                            endpoint: "checkv2",
+                            message: "Cannot upload data, no server found",
+                            httpStatus: 404,
+                            errorType: "http_error"
+                        });
                     },
                     500: function () {
-                        common.alertMessage("alert-error", "Cannot tokenize message: no text data");
+                        common.alertMessage("alert-danger", "Cannot tokenize message: no text data");
                     },
                     503: function () {
-                        common.alertMessage("alert-error", "Cannot tokenize message: no text data");
+                        common.alertMessage("alert-danger", "Cannot tokenize message: no text data");
                     }
                 },
                 server: common.getServer()
@@ -151,7 +137,7 @@ define(["jquery", "app/common", "app/libft"],
                           "<td>" + hash + "</td></tr>");
                     });
                 }
-                $("#hash-card").slideDown();
+                common.show("#hash-card", true);
             }
 
             common.query("plugins/fuzzy/hashes?flag=" + $("#fuzzy-flag").val(), {
@@ -166,7 +152,7 @@ define(["jquery", "app/common", "app/libft"],
                         common.alertMessage("alert-success", "Message successfully processed");
                         fillHashTable(json.hashes);
                     } else {
-                        common.alertMessage("alert-error", "Unexpected error processing message");
+                        common.alertMessage("alert-danger", "Unexpected error processing message");
                     }
                 },
                 server: common.getServer()
@@ -175,7 +161,7 @@ define(["jquery", "app/common", "app/libft"],
 
 
         libft.set_page_size("scan", $("#scan_page_size").val());
-        libft.bindHistoryTableEventHandlers("scan", 3);
+        libft.bindHistoryTableEventHandlers("scan", 5);
 
         $("#cleanScanHistory").off("click");
         $("#cleanScanHistory").on("click", (e) => {
@@ -198,7 +184,7 @@ define(["jquery", "app/common", "app/libft"],
         });
 
         $(".card-close-btn").on("click", function () {
-            $(this).closest(".card").slideUp();
+            common.hide($(this).closest(".card"), true);
         });
 
         function getScanTextHeaders() {
@@ -237,7 +223,7 @@ define(["jquery", "app/common", "app/libft"],
                     uploadText(data, source, headers);
                 }
             } else {
-                common.alertMessage("alert-error", "Message source field cannot be blank");
+                common.alertMessage("alert-danger", "Message source field cannot be blank");
             }
             return false;
         });
@@ -329,11 +315,16 @@ define(["jquery", "app/common", "app/libft"],
         }
 
         ui.getClassifiers = function () {
-            const server = common.getServer();
-            if (shouldSkipRequest(server, "classifiers")) return;
-
             if (!common.read_only) {
-                const sel = $("#classifier").empty().append($("<option>", {value: "", text: "All classifiers"}));
+                const server = common.getServer();
+                const sel = $("#classifier");
+                const hadOptions = sel.children().length > 0; // remember pre-state
+
+                // Skip request only if we already had options populated for this config/server
+                if (shouldSkipRequest(server, "classifiers") && hadOptions) return;
+
+                sel.empty().append($("<option>", {value: "", text: "All classifiers"}));
+
                 common.query("bayes/classifiers", {
                     success: function (data) {
                         data[0].data.forEach((c) => sel.append($("<option>", {value: c, text: c})));
@@ -359,8 +350,8 @@ define(["jquery", "app/common", "app/libft"],
 
         function toggleWidgets(showPicker, showInput) {
             fuzzyWidgets.forEach(({picker, input}) => {
-                $(picker)[showPicker ? "show" : "hide"]();
-                $(input)[showInput ? "show" : "hide"]();
+                (showPicker ? common.show : common.hide)(picker);
+                (showInput ? common.show : common.hide)(input);
             });
         }
 
@@ -413,8 +404,8 @@ define(["jquery", "app/common", "app/libft"],
                             const $picker = $(picker);
                             $picker
                                 .empty()
-                                .append($("<option>", {value: "", text: "fuzzy_check disabled"}))
-                                .show();
+                                .append($("<option>", {value: "", text: "fuzzy_check disabled"}));
+                            common.show($picker);
                             container($picker)
                                 .attr("title", "fuzzy_check module is not enabled in server configuration.");
                         });

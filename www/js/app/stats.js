@@ -1,25 +1,5 @@
 /*
- The MIT License (MIT)
-
- Copyright (C) 2017 Vsevolod Stakhov <vsevolod@highsecure.ru>
-
- Permission is hereby granted, free of charge, to any person obtaining a copy
- of this software and associated documentation files (the "Software"), to deal
- in the Software without restriction, including without limitation the rights
- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- copies of the Software, and to permit persons to whom the Software is
- furnished to do so, subject to the following conditions:
-
- The above copyright notice and this permission notice shall be included in
- all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- THE SOFTWARE.
+ * Copyright (C) 2017 Vsevolod Stakhov <vsevolod@highsecure.ru>
  */
 
 define(["jquery", "app/common", "d3pie", "d3"],
@@ -55,15 +35,58 @@ define(["jquery", "app/common", "d3pie", "d3"],
             return out;
         }
 
-        function displayStatWidgets(checked_server) {
-            const servers = JSON.parse(sessionStorage.getItem("Credentials"));
-            let data = {};
-            if (servers && servers[checked_server]) {
-                ({data} = servers[checked_server]);
+        let rowspanHoverHandlersInitialized = false;
+
+        function attachRowspanHoverHandlers(tableId) {
+            const $table = $(tableId);
+
+            function findRowspanCell($row) {
+                const headerCount = $table.find("thead th").length;
+                if ($row.find("td").length >= headerCount) return null;
+
+                // Assumes rowspan cells always appear in the first column
+                let result = null;
+                $row.prevAll().find("td:first-child[rowspan]").each((_, el) => {
+                    const $cell = $(el);
+                    const rowspan = parseInt($cell.attr("rowspan"), 10);
+                    const distance = $row.prevAll().length - $cell.parent().prevAll().length;
+                    if (distance < rowspan) {
+                        result = $cell;
+                        return false; // break
+                    }
+                    return true;
+                });
+                return result;
             }
 
+            $table.on("mouseenter", "tbody td", (event) => {
+                const $cell = $(event.currentTarget);
+                const $row = $cell.parent();
+
+                if ($cell.attr("rowspan")) {
+                    // Hovering over rowspan cell - highlight entire group
+                    const rowspan = parseInt($cell.attr("rowspan"), 10);
+                    $cell.addClass("table-hover-cell");
+                    $row.find("td").addClass("table-hover-cell");
+                    $row.nextAll().slice(0, rowspan - 1).find("td").addClass("table-hover-cell");
+                } else {
+                    // Hovering over regular cell - highlight current row
+                    $row.find("td").addClass("table-hover-cell");
+
+                    // Highlight rowspan cell if exists
+                    const $rowspanCell = findRowspanCell($row);
+                    if ($rowspanCell) $rowspanCell.addClass("table-hover-cell");
+                }
+            }).on("mouseleave", "tbody td", () => $table.find("tbody td").removeClass("table-hover-cell"));
+        }
+
+        function displayStatWidgets(checked_server) {
+            const servers = JSON.parse(sessionStorage.getItem("Credentials") || "{}");
+            const data = servers[checked_server]?.data ?? {};
+
             const stat_w = [];
-            $("#statWidgets").empty().hide();
+            $("#statWidgets").empty();
+            common.hide("#statWidgets");
             $.each(data, (i, item) => {
                 const widgetsOrder = ["scanned", "no action", "greylist", "add header", "rewrite subject", "reject", "learned"];
 
@@ -102,7 +125,7 @@ define(["jquery", "app/common", "d3pie", "d3"],
                 .wrapAll('<div class="card stat-box text-center shadow-sm float-end">' +
                   '<div class="widget overflow-hidden p-2 text-capitalize"></div></div>');
             $("#statWidgets").find("div.float-end").appendTo("#statWidgets");
-            $("#statWidgets").show();
+            common.show("#statWidgets");
 
             $("#clusterTable tbody").empty();
             $("#selSrv").empty();
@@ -180,16 +203,8 @@ define(["jquery", "app/common", "d3pie", "d3"],
 
             function addStatfiles(server, statfiles) {
                 $.each(statfiles, (i, statfile) => {
-                    let cls = "";
-                    switch (statfile.symbol) {
-                        case "BAYES_SPAM":
-                            cls = "symbol-positive";
-                            break;
-                        case "BAYES_HAM":
-                            cls = "symbol-negative";
-                            break;
-                        default:
-                    }
+                    const symbolClassMap = {BAYES_SPAM: "symbol-positive", BAYES_HAM: "symbol-negative"};
+                    const cls = symbolClassMap[statfile.symbol] || "";
                     $("#bayesTable tbody").append("<tr>" +
                       (i === 0 ? '<td rowspan="' + statfiles.length + '">' + server + "</td>" : "") +
                       '<td class="' + cls + '">' + statfile.symbol + "</td>" +
@@ -222,6 +237,12 @@ define(["jquery", "app/common", "d3pie", "d3"],
                 addStatfiles(checked_server, data.statfiles);
                 addFuzzyStorage(checked_server, data.fuzzy_hashes);
             }
+
+            if (!rowspanHoverHandlersInitialized) {
+                attachRowspanHoverHandlers("#bayesTable");
+                attachRowspanHoverHandlers("#fuzzyTable");
+                rowspanHoverHandlersInitialized = true;
+            }
         }
 
         function getChart(graphs, checked_server) {
@@ -247,9 +268,9 @@ define(["jquery", "app/common", "d3pie", "d3"],
             }
 
             const data = [];
-            const creds = JSON.parse(sessionStorage.getItem("Credentials"));
+            const creds = JSON.parse(sessionStorage.getItem("Credentials") || "{}");
             // Controller doesn't return the 'actions' object until at least one message is scanned
-            if (creds && creds[checked_server] && creds[checked_server].data.scanned) {
+            if (creds[checked_server]?.data?.scanned) {
                 const {actions} = creds[checked_server].data;
 
                 ["no action", "soft reject", "add header", "rewrite subject", "greylist", "reject"]
@@ -327,8 +348,14 @@ define(["jquery", "app/common", "d3pie", "d3"],
                                 error: function (jqXHR, textStatus, errorThrown) {
                                     if (!(alerted in sessionStorage)) {
                                         sessionStorage.setItem(alerted, true);
-                                        common.alertMessage("alert-error", neighbours_status[e].name + " > " +
-                                          "Cannot receive legacy stats data" + (errorThrown ? ": " + errorThrown : ""));
+                                        common.logError({
+                                            server: neighbours_status[e].name,
+                                            endpoint: "graph",
+                                            message: "Cannot receive legacy stats data" +
+                                                (errorThrown ? ": " + errorThrown : ""),
+                                            httpStatus: jqXHR.status,
+                                            errorType: "http_error"
+                                        });
                                     }
                                     process_node_stat(e);
                                 }
