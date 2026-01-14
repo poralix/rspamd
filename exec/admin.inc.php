@@ -3,10 +3,10 @@
 #
 #   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Thu May 21 20:33:07 +07 2020
+#          Last modified: Wed Jan 14 06:38:59 PM +07 2026
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
-#         Copyright 2019 by Alex S Grebenschikov (support@poralix.com)
+#         Copyright 2026 by Alex S Grebenschikov (support@poralix.com)
 #   ==============================================================================
 #
 ######################################################################################
@@ -71,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST')
 if ($plugin->makeRequest() && $plugin->getResponseHeaders())
 {
     $bodyOutput = filterContent($plugin->getResponseBody());
+    //$bodyOutput = json_encode($_SERVER);
 
     if (defined('ADMIN_RAW_CONTENT') && ADMIN_RAW_CONTENT)
     {

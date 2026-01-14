@@ -3,10 +3,10 @@
 #
 #   Rspamd web interface plugin for Directadmin $ 0.2
 #   ==============================================================================
-#          Last modified: Wed May  8 14:09:59 +07 2024
+#          Last modified: Wed Jan 14 05:51:36 PM +07 2026
 #   ==============================================================================
 #         Written by Alex S Grebenschikov (support@poralix.com)
-#         Copyright 2019-2024 by Alex S Grebenschikov (support@poralix.com)
+#         Copyright 2019-2026 by Alex S Grebenschikov (support@poralix.com)
 #   ==============================================================================
 #
 ######################################################################################
@@ -85,6 +85,7 @@ function filterContent($str)
 
         'common.query("plugins/selectors/check_selector?selector="' => 'common.query("check_selector.raw?selector="',
         'common.query("plugins/selectors/check_message?selector="' => 'common.query("check_message.raw?selector="',
+        'common.query("plugins/fuzzy/hashes?flag="' => 'common.query("fuzzy_hashes.raw?flag="',
 
     );
 
@@ -122,10 +123,11 @@ function filterContent($str)
         'url = "learnspam";',
         'url = "fuzzyadd";',
         'url = "checkv2";',
+        'uploadText(data, source, headers);',
         'data-upload="learnham"',
         'data-upload="learnspam"',
         'data-upload="fuzzyadd"',
-        'data-upload="checkv2"',
+        '"checkv2"',
         'rspamd.query("plugins/',
         'common.query("plugins/',
     );
@@ -158,10 +160,11 @@ function filterContent($str)
         'url = "learnspam.raw";',
         'url = "fuzzyadd.raw?flag="+$("#fuzzyFlagText").val()+"&weight="+$("#fuzzyWeightText").val();',
         'url = "checkv2.raw";',
+        'uploadText(data, source+"?flag="+$("#fuzzyFlagText").val()+"&weight="+$("#fuzzyWeightText").val(), headers);',
         'data-upload="learnham.raw"',
         'data-upload="learnspam.raw"',
         'data-upload="fuzzyadd.raw"',
-        'data-upload="checkv2.raw"',
+        '"checkv2.raw"',
         'rspamd.query("plugins.raw?r=',
         'common.query("plugins.raw?r=',
     );
@@ -324,6 +327,13 @@ function prepareRequest($requestUrl, $resourceUrl=false)
             define('SAVE_CONTENT_TYPE', 'RAW');
             $selector = (isset($_GET['selector']) && $_GET['selector']) ? $_GET['selector'] : '';
             $url = sprintf('%s/plugins/selectors/check_message?selector=%s',$PRE_URL,$selector);
+        }
+        elseif ($requestUrl == 'plugins/fuzzy/hashes')
+        {
+            $contentType = 'JSON';
+            define('SAVE_CONTENT_TYPE', 'RAW');
+            $flag = (isset($_GET['flag']) && $_GET['flag']) ? $_GET['flag'] : '';
+            $url = sprintf('%s/plugins/fuzzy/hashes?flag=%d',$PRE_URL,$flag);
         }
         elseif ($requestUrl == 'bayes/classifiers')
         {
